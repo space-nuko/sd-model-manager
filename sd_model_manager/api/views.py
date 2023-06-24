@@ -32,9 +32,6 @@ async def index(request):
             "data": [schema.dump(m[0]) for m in page]
         }
 
-        from pprint import pp
-        pp(resp["data"][0])
-
         return web.json_response(resp, dumps=simplejson.dumps)
 
 @routes.get("/api/v1/lora/{id}")
