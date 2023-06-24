@@ -2,3 +2,4 @@
 -r documentation.txt
 
 wxPython==4.2.1
+wxasync==0.49

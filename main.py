@@ -8,13 +8,15 @@ from sd_model_manager.utils.common import get_config
 import sys
 
 
-async def create_app() -> web.Application:
+async def create_app(argv=None) -> web.Application:
     app = init_app()
-    app["config"] = get_config(sys.argv)
+    if argv is None:
+        argv = sys.argv
+    app["config"] = get_config(argv)
 
     db = DB()
     await db.init()
-    await db.scan(app["config"].model_paths)
+    # await db.scan(app["config"].model_paths)
 
     app["db"] = db
 
@@ -25,7 +27,7 @@ async def create_app() -> web.Application:
 
 def main() -> None:
     app = init_app()
-    host = app["config"].host
+    host = app["config"].listen
     port = app["config"].port
     web.run_app(app, host=host, port=port)
 

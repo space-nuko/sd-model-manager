@@ -8,7 +8,7 @@ import asyncio
 import simplejson
 from PIL import Image
 from datetime import datetime
-from sqlalchemy import select, func
+from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
@@ -76,12 +76,9 @@ class DB:
 
     async def init(self):
         path = os.path.join(PATH, DATABASE_NAME)
-        if os.path.exists(DATABASE_NAME + ".db"):
-            os.remove(DATABASE_NAME + ".db")
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{DATABASE_NAME}.db")
 
         async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
 
         self.AsyncSession = async_sessionmaker(bind=self.engine)
@@ -95,6 +92,10 @@ class DB:
         print("Building model database...")
 
         async with self.AsyncSession() as session:
+            query = delete(LoRAModel)
+            await session.execute(query)
+            await session.commit()
+
             all_files = []
             for path in paths:
                 files = glob.iglob(f"{path}/**/*.safetensors", recursive=True)
@@ -159,6 +160,7 @@ class DB:
                     keep_tokens=to_bool(metadata.get("ss_keep_tokens", None)),
                     dataset_dirs=to_json(metadata.get("ss_dataset_dirs", None)),
                     reg_dataset_dirs=to_json(metadata.get("ss_reg_dataset_dirs", None)),
+                    tag_frequency=to_json(metadata.get("ss_tag_frequency", None)),
                     sd_model_name=metadata.get("ss_sd_model_name", None),
                     sd_model_hash=metadata.get("ss_sd_model_hash", None),
                     sd_new_model_hash=metadata.get("ss_sd_new_model_hash", None),

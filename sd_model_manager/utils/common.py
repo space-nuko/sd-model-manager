@@ -21,7 +21,7 @@ p.add_argument("--model-paths", type=str, nargs="+")
 
 
 def get_config(argv):
-    if argv[0].endswith("adev"):
+    if len(argv) > 0 and argv[0].endswith("adev"):
         argv = []
 
     config = p.parse_args(argv)
