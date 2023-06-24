@@ -2,6 +2,7 @@ from aiohttp import web
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, selectin_polymorphic
 from sqlakeyset.asyncio import select_page
+import simplejson
 
 from sd_model_manager.models.sd_models import SDModel, LoRAModel, LoRAModelSchema
 
@@ -31,7 +32,10 @@ async def index(request):
             "data": [schema.dump(m[0]) for m in page]
         }
 
-        return web.json_response(resp)
+        from pprint import pp
+        pp(resp["data"][0])
+
+        return web.json_response(resp, dumps=simplejson.dumps)
 
 @routes.get("/api/v1/lora/{id}")
 async def show(request):

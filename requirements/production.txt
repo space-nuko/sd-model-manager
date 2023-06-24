@@ -9,5 +9,6 @@ torch==2.0.1
 tqdm
 sqlakeyset
 aiosqlite==0.17.0
-marshmallow_sqlalchemy
+marshmallow==3.19.0
+marshmallow_sqlalchemy==0.29.0
 simplejson
