@@ -3,10 +3,21 @@
 from aiohttp import web
 import aiohttp_debugtoolbar
 from sd_model_manager.app import init_app
+from sd_model_manager.db import DB
+from sd_model_manager.utils.common import get_config
+import sys
 
 
-def create_app() -> web.Application:
+async def create_app() -> web.Application:
     app = init_app()
+    app["config"] = get_config(sys.argv)
+
+    db = DB()
+    await db.init()
+    await db.scan(app["config"].model_paths)
+
+    app["db"] = db
+
     aiohttp_debugtoolbar.setup(app, check_host=False)
 
     return app
@@ -14,8 +25,8 @@ def create_app() -> web.Application:
 
 def main() -> None:
     app = init_app()
-    host = "0.0.0.0"
-    port = 7779
+    host = app["config"].host
+    port = app["config"].port
     web.run_app(app, host=host, port=port)
 
 

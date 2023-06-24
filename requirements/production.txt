@@ -1,3 +1,13 @@
 aiohttp==3.8.4
 aiohttp_jinja2==1.5
 markdown2==2.4.2
+configargparse==1.5.3
+sqlalchemy
+pillow
+safetensors
+torch==2.0.1
+tqdm
+sqlakeyset
+aiosqlite==0.17.0
+marshmallow_sqlalchemy
+simplejson
