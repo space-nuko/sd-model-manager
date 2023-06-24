@@ -15,6 +15,7 @@ class SDModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     type: Mapped[str]
 
+    root_path = Column(String)
     filepath = Column(String)
     # preview_image = Column(LargeBinary, nullable=True)
     display_name = Column(String, nullable=True)

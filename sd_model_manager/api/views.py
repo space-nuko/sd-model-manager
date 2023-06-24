@@ -1,3 +1,4 @@
+import sys
 from aiohttp import web
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, selectin_polymorphic
@@ -19,7 +20,7 @@ routes = web.RouteTableDef()
 @routes.get("/api/v1/loras")
 async def index(request):
     page_marker = request.rel_url.query.get("page", None)
-    limit = int(request.rel_url.query.get("limit", 20))
+    limit = int(request.rel_url.query.get("limit", sys.maxsize))
 
     async with request.app["db"].AsyncSession() as s:
         query = select(LoRAModel).order_by(SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
