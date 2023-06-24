@@ -8,9 +8,9 @@ from sd_model_manager.models.sd_models import SDModel, LoRAModel, LoRAModelSchem
 
 def paging_to_json(paging, limit):
     return {
-        "next": paging.next,
-        "current": paging.current,
-        "previous": paging.previous,
+        "next": paging.bookmark_next,
+        "current": paging.bookmark_current,
+        "previous": paging.bookmark_previous,
         "limit": limit
     }
 
@@ -18,12 +18,12 @@ routes = web.RouteTableDef()
 
 @routes.get("/api/v1/loras")
 async def index(request):
-    page_no = int(request.rel_url.query.get("page_no", 0))
+    page_marker = request.rel_url.query.get("page", None)
     limit = int(request.rel_url.query.get("limit", 20))
 
     async with request.app["db"].AsyncSession() as s:
-        query = select(SDModel).order_by(LoRAModel.filepath, SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
-        page = await select_page(s, query, per_page=limit, page=page_no)
+        query = select(LoRAModel).order_by(SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
+        page = await select_page(s, query, per_page=limit, page=page_marker)
 
         schema = LoRAModelSchema()
 
@@ -40,5 +40,13 @@ async def show(request):
     if model_id is None:
         return web.Response(status=404)
 
-    resp = {"test": "a"}
-    return web.json_response(resp)
+    async with request.app["db"].AsyncSession() as s:
+        row = await s.get(LoRAModel, model_id)
+
+        schema = LoRAModelSchema()
+
+        resp = {
+            "data": schema.dump(row)
+        }
+
+        return web.json_response(resp, dumps=simplejson.dumps)

@@ -5,6 +5,7 @@ import sys
 import glob
 import tqdm
 import asyncio
+import simplejson
 from PIL import Image
 from datetime import datetime
 from sqlalchemy import select, func
@@ -41,6 +42,12 @@ def to_datetime(s):
     if s is None or s == "None":
         return None
     return datetime.fromtimestamp(float(s))
+
+
+def to_json(s):
+    if s is None or s == "None":
+        return None
+    return simplejson.loads(s)
 
 
 PREVIEW_EXTS = [".preview.png", ".png"]
@@ -150,8 +157,8 @@ class DB:
                     max_bucket_reso=to_int(metadata.get("ss_max_bucket_reso", None)),
                     seed=to_int(metadata.get("ss_seed", None)),
                     keep_tokens=to_bool(metadata.get("ss_keep_tokens", None)),
-                    dataset_dirs=metadata.get("ss_dataset_dirs", None),
-                    reg_dataset_dirs=metadata.get("ss_reg_dataset_dirs", None),
+                    dataset_dirs=to_json(metadata.get("ss_dataset_dirs", None)),
+                    reg_dataset_dirs=to_json(metadata.get("ss_reg_dataset_dirs", None)),
                     sd_model_name=metadata.get("ss_sd_model_name", None),
                     sd_model_hash=metadata.get("ss_sd_model_hash", None),
                     sd_new_model_hash=metadata.get("ss_sd_new_model_hash", None),
@@ -160,7 +167,7 @@ class DB:
                     sd_new_vae_hash=metadata.get("ss_sd_new_vae_hash", None),
                     vae_name=metadata.get("ss_vae_name", None),
                     training_comment=metadata.get("ss_training_comment", None),
-                    bucket_info=metadata.get("ss_bucket_info", None),
+                    bucket_info=to_json(metadata.get("ss_bucket_info", None)),
                     sd_scripts_commit_hash=metadata.get("ss_sd_scripts_commit_hash", None),
                     noise_offset=to_float(metadata.get("ss_noise_offset", None))
                 )

@@ -1,0 +1,4 @@
+-r production.txt
+-r documentation.txt
+
+wxPython==4.2.1

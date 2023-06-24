@@ -1,5 +1,6 @@
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base, Mapped, mapped_column
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric
+from marshmallow import fields
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from .utils import JSON
 import simplejson
@@ -83,8 +84,9 @@ class LoRAModel(SDModel):
     seed = Column(Integer, nullable=True)
     keep_tokens = Column(Boolean, nullable=True)
     noise_offset = Column(Numeric, nullable=True)
-    dataset_dirs = Column(String, nullable=True)
-    reg_dataset_dirs = Column(String, nullable=True)
+    dataset_dirs = Column(JSON, nullable=True)
+    reg_dataset_dirs = Column(JSON, nullable=True)
+    tag_frequency = Column(JSON, nullable=True)
     sd_model_name = Column(String, nullable=True)
     sd_model_hash = Column(String, nullable=True)
     sd_new_model_hash = Column(String, nullable=True)
@@ -106,3 +108,8 @@ class LoRAModelSchema(SQLAlchemyAutoSchema):
         render_module = simplejson
         include_fk = True
         load_instance = False
+
+    dataset_dirs = fields.Raw()
+    reg_dataset_dirs = fields.Raw()
+    tag_frequency = fields.Raw()
+    bucket_info = fields.Raw()
