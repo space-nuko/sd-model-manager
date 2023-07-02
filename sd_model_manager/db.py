@@ -50,6 +50,20 @@ def to_json(s):
     return simplejson.loads(s)
 
 
+def to_unique_tags(s):
+    if s is None or s == "None":
+        return None
+
+    tags = set()
+
+    d = simplejson.loads(s)
+    for k, v in d.items():
+        for t in v:
+            tags.add(t)
+
+    return len(tags)
+
+
 PREVIEW_EXTS = [".preview.png", ".png"]
 def get_preview_image(path):
     dirname = os.path.dirname(path)
@@ -159,6 +173,7 @@ class DB:
                         dataset_dirs=to_json(metadata.get("ss_dataset_dirs", None)),
                         reg_dataset_dirs=to_json(metadata.get("ss_reg_dataset_dirs", None)),
                         tag_frequency=to_json(metadata.get("ss_tag_frequency", None)),
+                        unique_tags=to_unique_tags(metadata.get("ss_tag_frequency", None)),
                         sd_model_name=metadata.get("ss_sd_model_name", None),
                         sd_model_hash=metadata.get("ss_sd_model_hash", None),
                         sd_new_model_hash=metadata.get("ss_sd_new_model_hash", None),

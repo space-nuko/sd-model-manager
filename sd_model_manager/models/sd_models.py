@@ -88,6 +88,7 @@ class LoRAModel(SDModel):
     dataset_dirs = Column(JSON, nullable=True)
     reg_dataset_dirs = Column(JSON, nullable=True)
     tag_frequency = Column(JSON, nullable=True)
+    unique_tags = Column(Integer, nullable=True)
     sd_model_name = Column(String, nullable=True)
     sd_model_hash = Column(String, nullable=True)
     sd_new_model_hash = Column(String, nullable=True)

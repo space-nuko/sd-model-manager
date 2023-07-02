@@ -19,8 +19,10 @@ from aiohttp import web
 from aiopubsub import Key
 from typing import Callable
 from ast import literal_eval as make_tuple
+
 from main import create_app
 from sd_model_manager.utils.common import get_config
+from sd_model_manager.utils.timer import Timer
 from gui.image_panel import ImagePanel
 
 hub = aiopubsub.Hub()
@@ -66,6 +68,7 @@ def find_image(item, search_folder=False):
 class API:
     def __init__(self, config):
         self.config = config
+        self.client = aiohttp.ClientSession()
 
     def base_url(self):
         host = self.config.listen
@@ -80,16 +83,14 @@ class API:
         if query:
             params["query"] = query
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(self.base_url() + "/api/v1/loras", params=params) as response:
-                if response.status != 200:
-                    print(await response.text())
-                return await response.json()
+        async with self.client.get(self.base_url() + "/api/v1/loras", params=params) as response:
+            if response.status != 200:
+                print(await response.text())
+            return await response.json()
 
     async def update_lora(self, id, changes):
-        async with aiohttp.ClientSession() as session:
-            async with session.patch(self.base_url() + f"/api/v1/lora/{id}", data=simplejson.dumps({"changes": changes})) as response:
-                return await response.json()
+        async with self.client.patch(self.base_url() + f"/api/v1/lora/{id}", data=simplejson.dumps({"changes": changes})) as response:
+            return await response.json()
 
 class ColumnInfo:
     name: str
@@ -111,31 +112,21 @@ def format_resolution(tuple_str):
     except:
         return tuple_str
 
-def get_unique_tags(item):
-    if not item["tag_frequency"]:
-        return None
-
-    tags = set()
-
-    for k, v in item["tag_frequency"].items():
-        for t in v:
-            tags.add(t)
-
-    return len(tags)
-
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
     ColumnInfo("Has Image", lambda m: "★" if find_image(m)[0] is not None else "", width=20),
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
+
+    ColumnInfo("Module", lambda m: m["network_module"]),
+
     ColumnInfo("Name", lambda m: m["display_name"]),
     ColumnInfo("Author", lambda m: m["author"]),
     ColumnInfo("Rating", lambda m: m["rating"]),
 
-    ColumnInfo("Module", lambda m: m["network_module"]),
     ColumnInfo("Dim.", lambda m: m["network_dim"], width=40),
     ColumnInfo("Alpha", lambda m: int(m["network_alpha"] or 0), width=40),
     ColumnInfo("Resolution", lambda m: format_resolution(m["resolution"])),
-    ColumnInfo("Unique Tags", get_unique_tags),
+    ColumnInfo("Unique Tags", lambda m: m["unique_tags"]),
     ColumnInfo("Learning Rate", lambda m: m["learning_rate"]),
     ColumnInfo("UNet LR", lambda m: m["unet_lr"]),
     ColumnInfo("Text Encoder LR", lambda m: m["text_encoder_lr"]),
@@ -155,11 +146,17 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.results = []
         self.text = {}
+        self.clicked = False
 
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnListItemSelected)
-        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnListItemDeselected)
-        self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemDeselected)
+        # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
+        # https://github.com/wxWidgets/wxWidgets/issues/4541
+        self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
+        self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
+        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
+        self.Bind(wx.EVT_RIGHT_DOWN, self.OnClick)
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
 
@@ -168,6 +165,14 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
             return ""
 
         return self.text[col][item]
+
+    def OnKeyUp(self, evt):
+        self.clicked = True
+        evt.Skip()
+
+    def OnKeyDown(self, evt):
+        self.clicked = True
+        evt.Skip()
 
     def set_results(self, results):
         self.results = results
@@ -193,6 +198,15 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
                 self.text[col] = {}
             self.text[col][i] = text
 
+    def get_selection(self):
+        item = self.GetFirstSelected()
+        num = self.GetSelectedItemCount()
+        selection = [item]
+        for i in range(1, num):
+            item = self.GetNextSelected(item)
+            selection.append(item)
+        return [self.results["data"][i] for i in selection]
+
     def OnGetItemColumnImage(self, item, col):
         return []
 
@@ -214,13 +228,17 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def OnGetItemColumnKind(self, item, col):
         return 0
 
-    def OnListItemSelected(self, evt):
-        index = evt.GetIndex()
-        data = self.results["data"][index]
-        self.pub.publish(Key("item_selected"), data)
+    def OnClick(self, evt):
+        self.clicked = True
+        evt.Skip()
 
-    def OnListItemDeselected(self, evt):
-        self.pub.publish(Key("item_selected"), None)
+    def OnListItemSelected(self, evt):
+        if not self.clicked:
+            return
+
+        self.clicked = False
+        selection = self.get_selection()
+        self.pub.publish(Key("item_selected"), selection)
 
     def OnListItemRightClicked(self, evt):
         i = self.GetFirstSelected()
@@ -330,7 +348,7 @@ class PropertiesPanel(wx.Panel):
 
         self.ctrls = {}
 
-        self.selected_item = None
+        self.selected_items = []
         self.changes = {}
         self.values = {}
 
@@ -340,7 +358,7 @@ class PropertiesPanel(wx.Panel):
         ]
 
         for key, label in ctrls:
-            choices = ["<blank>", "<keep>"]
+            choices = ["< blank >", "< keep >"]
             combo_box = wx.ComboBox(self, id=wx.ID_ANY, value="", choices=choices)
             self.ctrls[key] = (combo_box, wx.StaticText(self, label="Name"))
 
@@ -361,11 +379,14 @@ class PropertiesPanel(wx.Panel):
         self.image_view = ImagePanel(self, style=wx.SUNKEN_BORDER, size=(450, 450))
         self.text_preview_image = wx.TextCtrl(self)
         self.text_preview_image.SetEditable(False)
+        self.text_id = wx.TextCtrl(self)
+        self.text_id.SetEditable(False)
 
         self.other_ctrls = {}
         self.other_ctrls["filename"] = self.text_filename
         self.other_ctrls["image"] = self.image_view
         self.other_ctrls["preview_image"] = self.text_preview_image
+        self.other_ctrls["id"] = self.text_id
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(wx.StaticText(self, label="Filename"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
@@ -379,6 +400,8 @@ class PropertiesPanel(wx.Panel):
         self.sizer.Add(self.image_view, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(wx.StaticText(self, label="Preview Image"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.text_preview_image, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(wx.StaticText(self, label="ID"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.text_id, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
         self.SetSizerAndFit(self.sizer)
 
@@ -393,7 +416,7 @@ class PropertiesPanel(wx.Panel):
         self.app.frame.toolbar.EnableTool(wx.ID_SAVE, False)
 
     async def commit_changes(self):
-        if not self.changes:
+        if not self.changes or not self.selected_items:
             return
 
         changes = {}
@@ -409,7 +432,8 @@ class PropertiesPanel(wx.Panel):
             elif ctrl_name in self.other_ctrls:
                 changes[ctrl_name] = new_value
 
-            self.selected_item[ctrl_name] = new_value
+            for item in self.selected_items:
+                item[ctrl_name] = new_value
 
         if not changes:
             self.clear_changes()
@@ -418,14 +442,15 @@ class PropertiesPanel(wx.Panel):
         count = 0
         updated = 0
         progress = wx.ProgressDialog("Saving", "Saving changes...", parent=self.app.frame,
-                                     maximum=1, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+                                     maximum=len(self.selected_items), style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
 
-        result = await self.app.api.update_lora(self.selected_item["id"], changes)
-        count += 1
-        updated += result['fields_updated']
-        progress.Update(count, f"{count}/1")
+        for item in self.selected_items:
+            result = await self.app.api.update_lora(item["id"], changes)
+            count += 1
+            updated += result['fields_updated']
+            progress.Update(count, f"Saving changes... ({count}/{len(self.selected_items)})")
 
-        self.app.frame.results_panel.list.refresh_one_text(self.selected_item)
+            self.app.frame.results_panel.list.refresh_one_text(item)
 
         progress.Destroy()
         self.app.frame.statusbar.SetStatusText(f"Updated {updated} fields")
@@ -433,7 +458,7 @@ class PropertiesPanel(wx.Panel):
         self.clear_changes()
 
     async def prompt_commit_changes(self):
-        if self.selected_item is None:
+        if not self.selected_items:
             self.changes = {}
             return
 
@@ -443,12 +468,12 @@ class PropertiesPanel(wx.Panel):
             if result == wx.ID_YES:
                 await self.commit_changes()
 
-    async def SubItemSelected(self, key, item):
+    async def SubItemSelected(self, key, items):
         await self.prompt_commit_changes()
 
-        self.selected_item = item
+        self.selected_items = items
 
-        if item is None:
+        if len(items) == 0:
             for (ctrl, label) in self.ctrls.values():
                 ctrl.SetEditable(False)
                 ctrl.Clear()
@@ -457,18 +482,49 @@ class PropertiesPanel(wx.Panel):
         else:
             for name, (ctrl, label) in self.ctrls.items():
                 ctrl.SetEditable(True)
-                value = item.get(name, "< blank >")
-                items = ["< blank >", "< keep >"]
-                if value is None or value == "":
-                    value = "< blank >"
-                elif value not in items:
-                    items.append(value)
-                ctrl.SetItems(items)
+
+                choices = ["< blank >", "< keep >"]
+
+                def get_value(item):
+                    value = item.get(name, "< blank >")
+                    if value is None or value == "":
+                        value = "< blank >"
+                    return value
+
+                value = None
+
+                if len(items) == 1:
+                    value = get_value(items[0])
+                    if value not in choices:
+                        choices.append(value)
+                else:
+                    for item in items:
+                        if value != "< keep >":
+                            item_value = get_value(item)
+                            if value is None:
+                                value = item_value
+                            elif value != item_value:
+                                value = "< keep >"
+                        choice = get_value(item)
+                        if choice not in choices:
+                            choices.append(choice)
+
+                ctrl.SetItems(choices)
                 ctrl.ChangeValue(value)
 
-            self.text_filename.ChangeValue(os.path.basename(item["filepath"]))
+            if len(items) == 1:
+                filename = os.path.basename(items[0]["filepath"])
+                id = str(items[0]["id"])
+            else:
+                filename = "< multiple >"
+                id = "< multiple >"
+            self.text_filename.ChangeValue(filename)
+            self.text_id.ChangeValue(id)
 
-            image, path = find_image(item, search_folder=True)
+            image = None
+            if len(items) == 1:
+                image, path = find_image(items[0], search_folder=True)
+
             if image:
                 self.image_view.LoadBitmap(image)
                 self.text_preview_image.ChangeValue(path)
@@ -602,7 +658,7 @@ class MainWindow(wx.Frame):
     async def OnSave(self, evt):
         await self.properties_panel.commit_changes()
 
-    async def SubItemSelected(self, key, item):
+    async def SubItemSelected(self, key, items):
         self.toolbar.EnableTool(wx.ID_SAVE, False)
 
     async def search(self, query):
