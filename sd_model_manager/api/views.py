@@ -43,11 +43,48 @@ async def show(request):
 
     async with request.app["db"].AsyncSession() as s:
         row = await s.get(LoRAModel, model_id)
+        if row is None:
+            return web.Response(status=404)
 
         schema = LoRAModelSchema()
 
         resp = {
             "data": schema.dump(row)
+        }
+
+        return web.json_response(resp, dumps=simplejson.dumps)
+
+@routes.patch("/api/v1/lora/{id}")
+async def update(request):
+    model_id = request.match_info.get("id", None)
+    if model_id is None:
+        return web.json_response({"message": "No LoRA ID provided"}, status=404)
+
+    data = await request.json()
+    changes = data.get("changes", None)
+
+    if changes is None:
+        return web.Response(status=400)
+
+    async with request.app["db"].AsyncSession() as s:
+        row = await s.get(LoRAModel, model_id)
+        if row is None:
+            return web.json_response({"message": f"LoRA not found: {id}"}, status=404)
+
+        updated = 0
+
+        if "display_name" in changes:
+            row.display_name = changes["display_name"]
+            updated += 1
+        if "author" in changes:
+            row.author = changes["author"]
+            updated += 1
+
+        await s.commit()
+
+        resp = {
+            "status": "ok",
+            "fields_updated": updated
         }
 
         return web.json_response(resp, dumps=simplejson.dumps)

@@ -3,4 +3,4 @@
 
 wxPython==4.2.1
 wxasync==0.49
-pypubsub
+aiopubsub
