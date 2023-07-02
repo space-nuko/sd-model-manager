@@ -68,6 +68,7 @@ class LoRAModel(SDModel):
     network_module = Column(String, nullable=True)
     network_dim = Column(Integer, nullable=True)
     network_alpha = Column(Numeric, nullable=True)
+    network_args = Column(JSON, nullable=True)
     mixed_precision = Column(Boolean, nullable=True)
     full_fp16 = Column(Boolean, nullable=True)
     v2 = Column(Boolean, nullable=True)
@@ -114,4 +115,5 @@ class LoRAModelSchema(SQLAlchemyAutoSchema):
     dataset_dirs = fields.Raw()
     reg_dataset_dirs = fields.Raw()
     tag_frequency = fields.Raw()
+    network_args = fields.Raw()
     bucket_info = fields.Raw()

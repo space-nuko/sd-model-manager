@@ -17,7 +17,7 @@ from sd_model_manager.utils import safetensors_hack
 from sd_model_manager.models.sd_models import Base, LoRAModel
 
 
-DATABASE_NAME = os.getenv("DATABASE_NAME", "lora_db")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "model_database")
 
 
 def to_bool(s):
@@ -154,6 +154,7 @@ class DB:
                         network_module=metadata.get("ss_network_module", None),
                         network_dim=to_int(metadata.get("ss_network_dim", None)),
                         network_alpha=to_float(metadata.get("ss_network_alpha", None)),
+                        network_args=to_json(metadata.get("ss_network_args", None)),
                         mixed_precision=to_bool(metadata.get("ss_mixed_precision", None)),
                         full_fp16=to_bool(metadata.get("ss_full_fp16", None)),
                         v2=to_bool(metadata.get("ss_v2", None)),

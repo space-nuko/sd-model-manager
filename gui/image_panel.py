@@ -50,15 +50,15 @@ class ImagePanel(wx.Panel):
     def __init__(self, parent, id=wx.ID_ANY,
                  pos=wx.DefaultPosition,
                  size=wx.DefaultSize,
-                 style=wx.BORDER_SUNKEN
+                 style=wx.SUNKEN_BORDER
                  ):
 
         super().__init__(parent, id, pos, size, style=style)
 
         self.bmpImage = wx.StaticBitmap(self, wx.ID_ANY)
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.bmpImage, 1, wx.EXPAND, 0)
-        self.SetSizer(sizer)
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer.Add(self.bmpImage, 1, wx.EXPAND, 0)
+        self.SetSizer(self.sizer)
 
         self.bitmap = None  # loaded image in bitmap format
         self.image = None   # loaded image in image format
