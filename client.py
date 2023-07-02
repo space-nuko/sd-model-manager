@@ -43,7 +43,7 @@ def open_on_file(path):
     else:
         os.startfile(os.path.dirname(path))
 
-def find_image(item, search_folder=False):
+def find_image(item, load=False):
     def try_load(file):
         if not os.path.isfile(file):
             return None
@@ -60,9 +60,12 @@ def find_image(item, search_folder=False):
 
     for s in [".preview.png", ".png"]:
         file = os.path.join(path, basename + s)
-        image = try_load(file)
-        if image:
-            return image, file
+        if load:
+            image = try_load(file)
+            if image:
+                return image, file
+        else:
+            return None, file
 
     for fname in os.listdir(path):
         file = os.path.realpath(os.path.join(path, fname))
@@ -162,10 +165,10 @@ def format_module(m):
 
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
-    ColumnInfo("Has Image", lambda m: "★" if find_image(m)[0] is not None else "", width=20),
+    ColumnInfo("Has Image", lambda m: "★" if find_image(m)[1] is not None else "", width=20),
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
 
-    ColumnInfo("Module", format_module, width=140),
+    ColumnInfo("Module", format_module, width=60),
 
     ColumnInfo("Name", lambda m: m["display_name"], is_meta=True, width=100),
     ColumnInfo("Author", lambda m: m["author"], is_meta=True, width=100),
@@ -203,6 +206,8 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.text = {}
         self.values = {}
         self.colmap = {}
+        self.filtered = []
+        self.filter = None
         self.clicked = False
 
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
@@ -217,12 +222,17 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnClick)
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
+        self.sub = aiopubsub.Subscriber(hub, Key("events"))
+        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
 
         for col, column in enumerate(COLUMNS):
             self.InsertColumn(col, column.name)
             self.SetColumnShown(col, column.is_visible)
 
         self.refresh_columns()
+
+    async def SubTreeFilterChanged(self, key, path):
+        self.pub.publish(Key("item_selected"), [])
 
     def OnKeyUp(self, evt):
         self.clicked = True
@@ -234,9 +244,23 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
     def set_results(self, results):
         self.results = results
+        self.filter = None
         self.text = {}
         self.values = {}
 
+        self.refresh_filter()
+
+    def refresh_filter(self):
+        data = self.results["data"]
+        self.filtered = []
+        print(self.filter)
+        if self.filter is None:
+            self.filtered = data
+        else:
+            for d in data:
+                p = os.path.normpath(os.path.join(d["root_path"], d["filepath"]))
+                if p.startswith(self.filter):
+                    self.filtered.append(d)
         self.refresh_text()
 
     def refresh_columns(self):
@@ -277,11 +301,11 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.text = {}
         self.values = {}
-        for i, data in enumerate(self.results["data"]):
+        for i, data in enumerate(self.filtered):
             data["_index"] = i
             self.refresh_one_text(data)
 
-        count = len(self.results["data"])
+        count = len(self.filtered)
         self.SetItemCount(count)
 
         self.app.frame.statusbar.SetStatusText(f"Done. ({count} records)")
@@ -309,7 +333,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         for i in range(1, num):
             item = self.GetNextSelected(item)
             selection.append(item)
-        return [self.results["data"][i] for i in selection]
+        return [self.filtered[i] for i in selection]
 
     def OnGetItemColumnImage(self, item, col):
         return []
@@ -371,7 +395,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
             i = self.GetNextSelected(i)
         self.Select(evt.GetIndex())
 
-        target = self.results["data"][evt.GetIndex()]
+        target = self.filtered[evt.GetIndex()]
 
         menu = PopupMenu(target=target, items=[
             PopupMenuItem("Open Folder", self.open_folder)
@@ -410,6 +434,9 @@ class ResultsPanel(wx.Panel):
         self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
         self.button = wx.Button(self, label="Search")
 
+        self.sub = aiopubsub.Subscriber(hub, Key("events"))
+        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
+
         wxasync.AsyncBind(wx.EVT_BUTTON, self.OnSearch, self.button)
         wxasync.AsyncBind(wx.EVT_TEXT_ENTER, self.OnSearch, self.search_box)
 
@@ -422,6 +449,10 @@ class ResultsPanel(wx.Panel):
         self.sizer.Add(self.sizer2, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
+
+    async def SubTreeFilterChanged(self, key, path):
+        self.list.filter = path
+        self.list.refresh_filter()
 
     async def search(self, query):
         self.list.DeleteAllItems()
@@ -513,7 +544,7 @@ class PreviewImagePanel(wx.Panel):
     async def SubItemSelected(self, key, items):
         image = None
         if len(items) == 1:
-            image, path = find_image(items[0], search_folder=True)
+            image, path = find_image(items[0], load=True)
 
         if image:
             self.image_view.LoadBitmap(image)
@@ -531,6 +562,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
+        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
 
         self.ctrls = {}
 
@@ -770,6 +802,9 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         self.clear_changes()
 
+    async def SubTreeFilterChanged(self, key, sel):
+        pass
+
 class FilePanel(wx.Panel):
     def __init__(self, *args, app=None, **kwargs):
         self.app = app
@@ -785,17 +820,42 @@ class FilePanel(wx.Panel):
         self.icon_file = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, icon_size))
 
         self.dir_tree = wx.TreeCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS)
+        self.button_clear = wx.Button(self, label="Clear Filter")
+        self.button_clear.Disable()
 
+        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnTreeSelectionChanged)
+        wxasync.AsyncBind(wx.EVT_BUTTON, self.OnClearFilter, self.button_clear)
+
+        self.pub = aiopubsub.Publisher(hub, Key("events"))
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "search_finished"), self.SubSearchFinished)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.dir_tree, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+        self.sizer.Add(self.button_clear, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
 
+    async def OnClearFilter(self, evt):
+        self.button_clear.Disable()
+        self.pub.publish(Key("tree_filter_changed"), None)
+
+    def OnTreeSelectionChanged(self, evt):
+        self.button_clear.Enable()
+        index = self.dir_tree.GetSelection()
+        segments = []
+
+        while index.IsOk():
+            segments.append(self.dir_tree.GetItemText(index))
+            index = self.dir_tree.GetItemParent(index)
+
+        path = os.path.normpath(os.path.join(*list(reversed(segments))))
+
+        self.pub.publish(Key("tree_filter_changed"), path)
+
     async def SubSearchFinished(self, key, results):
         self.dir_tree.DeleteAllItems()
+        self.button_clear.Disable()
         self.roots = []
 
         roots = set()

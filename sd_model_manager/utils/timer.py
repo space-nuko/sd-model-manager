@@ -14,15 +14,10 @@ line = "="*40
 class Timer:
     def log(self, s, elapsed=None):
         t = time.perf_counter()
-        print(line)
-        print(secondsToStr(t) + ' - ' + s)
         self.elapsed = t - self.last
         self.last = t
         elapsed = elapsed or self.elapsed
-        if elapsed:
-            print("Elapsed time:", secondsToStr(elapsed))
-        print(line)
-        print()
+        print(secondsToStr(elapsed) + " - " + s)
 
     def __enter__(self):
         self.start = time.perf_counter()

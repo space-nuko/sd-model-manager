@@ -40,6 +40,9 @@ class RatingCtrl(wx.ScrolledCanvas):
         self.multiple = True
         self.Refresh()
 
+    def Clear(self):
+        self.ChangeValue(0)
+
     def ChangeValue(self, rating):
         self.rating = rating
         self.multiple = False
