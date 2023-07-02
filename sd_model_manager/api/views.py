@@ -89,6 +89,9 @@ async def update(request):
         if "author" in changes:
             row.author = changes["author"]
             updated += 1
+        if "rating" in changes:
+            row.display_name = changes["rating"]
+            updated += 1
 
         await s.commit()
 

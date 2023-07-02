@@ -24,6 +24,7 @@ from main import create_app
 from sd_model_manager.utils.common import get_config
 from sd_model_manager.utils.timer import Timer
 from gui.image_panel import ImagePanel
+from gui.rating_ctrl import RatingCtrl, EVT_RATING_CHANGED
 
 hub = aiopubsub.Hub()
 
@@ -117,6 +118,13 @@ def format_resolution(tuple_str):
     except:
         return tuple_str
 
+def format_rating(rating):
+    if rating is None or rating <= 0:
+        return ""
+    rating = min(10, max(0, int(rating)))
+    return u'\u2605'*int(rating/2) + u'\u00BD'*int(rating%2!=0)
+
+
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
     ColumnInfo("Has Image", lambda m: "★" if find_image(m)[0] is not None else "", width=20),
@@ -126,7 +134,8 @@ COLUMNS = [
 
     ColumnInfo("Name", lambda m: m["display_name"], is_meta=True),
     ColumnInfo("Author", lambda m: m["author"], is_meta=True),
-    ColumnInfo("Rating", lambda m: m["rating"], is_meta=True),
+    ColumnInfo("Rating", lambda m: format_rating(m["rating"]), is_meta=True),
+    ColumnInfo("Tags", lambda m: m["tags"], is_meta=True),
 
     ColumnInfo("Dim.", lambda m: m["network_dim"], width=40),
     ColumnInfo("Alpha", lambda m: int(m["network_alpha"] or 0), width=40),
@@ -412,12 +421,31 @@ class PopupMenu(wx.Menu):
         item = self.items[event.GetId()]
         item.callback(self.target)
 
-class PropertiesPanel(wx.Panel):
-    def __init__(self, *args, app=None, **kwargs):
+class MetadataTagsList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
+    def __init__(self, parent):
+        self.tags = []
+
+        wx.ListCtrl.__init__(self, parent, id=wx.ID_ANY, style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES)
+        self.EnableAlternateRowColours(True)
+        self.InsertColumn(0, "Tag")
+        self.setResizeColumn(0)
+
+    def set_tags(self, tags):
+        self.tags = tags
+        self.Refresh()
+
+    def Clear(self):
+        self.tags = []
+
+    def OnGetItemText(self, item, col):
+        return self.tags[item]
+
+class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
+    def __init__(self, parent, app=None):
         self.app = app
         self.roots = []
 
-        wx.Panel.__init__(self, *args, **kwargs)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.VSCROLL)
 
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
@@ -429,40 +457,44 @@ class PropertiesPanel(wx.Panel):
         self.values = {}
 
         ctrls = [
-            ("display_name", "Name"),
-            ("author", "Author")
+            ("display_name", "Name", 0),
+            ("author", "Author", 0),
+            ("source", "Source", 0),
+            ("keywords", "Keywords", wx.TE_MULTILINE),
+            ("description", "Description", wx.TE_MULTILINE)
         ]
 
-        for key, label in ctrls:
+        for key, label, style in ctrls:
             choices = ["< blank >", "< keep >"]
-            combo_box = wx.ComboBox(self, id=wx.ID_ANY, value="", choices=choices)
+            combo_box = wx.ComboBox(self, id=wx.ID_ANY, value="", choices=choices, style=style)
             self.ctrls[key] = (combo_box, wx.StaticText(self, label=label))
 
-        def handler(key, ctrl, label, evt):
+        def handler(key, label, evt):
             value = evt.GetString()
-            if key in self.values and value != self.values[key]:
-                self.app.frame.toolbar.EnableTool(wx.ID_SAVE, True)
-                self.changes[key] = value
-                text = label.GetLabel()
-                if not text.endswith("*"):
-                    label.SetLabel(text + "*")
-            self.values[key] = value
+            self.modify_value(key, label, value)
 
         for key, (ctrl, label) in self.ctrls.items():
-            ctrl.Bind(wx.EVT_TEXT, lambda evt, key=key, ctrl=ctrl, label=label: handler(key, ctrl, label, evt))
+            ctrl.Bind(wx.EVT_TEXT, lambda evt, key=key, label=label: handler(key, label, evt))
 
+        self.label_rating = wx.StaticText(self, label="Rating")
+
+        self.ctrl_rating = RatingCtrl(self)
         self.text_filename = wx.TextCtrl(self)
-        self.image_view = ImagePanel(self, style=wx.SUNKEN_BORDER, size=(450, 450))
+        self.image_view = ImagePanel(self, style=wx.SUNKEN_BORDER, size=(300, 300))
         self.text_preview_image = wx.TextCtrl(self)
         self.text_preview_image.SetEditable(False)
         self.text_id = wx.TextCtrl(self)
         self.text_id.SetEditable(False)
+        self.list_tags = MetadataTagsList(self)
 
         self.other_ctrls = {}
         self.other_ctrls["filename"] = self.text_filename
         self.other_ctrls["image"] = self.image_view
         self.other_ctrls["preview_image"] = self.text_preview_image
         self.other_ctrls["id"] = self.text_id
+        self.other_ctrls["rating"] = self.ctrl_rating
+
+        self.ctrl_rating.Bind(EVT_RATING_CHANGED, lambda evt: self.modify_value("rating", self.label_rating, evt.rating))
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(wx.StaticText(self, label="Filename"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
@@ -472,20 +504,53 @@ class PropertiesPanel(wx.Panel):
         self.sizer.Add(self.ctrls["display_name"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["author"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["author"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["source"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["source"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["description"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
         self.sizer.Add(self.image_view, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.label_rating, flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrl_rating, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(wx.StaticText(self, label="Preview Image"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.text_preview_image, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(wx.StaticText(self, label="ID"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.text_id, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(wx.StaticText(self, label="Tags"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.list_tags, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
-        self.SetSizerAndFit(self.sizer)
+        sizer = wx.WrapSizer()
+        sizer.Add(self.sizer)
+        self.SetSizerAndFit(sizer)
+        self.SetupScrolling(scroll_x=False)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+    def modify_value(self, key, label, value):
+        if key in self.values and value != self.values[key]:
+            self.app.frame.toolbar.EnableTool(wx.ID_SAVE, True)
+            self.changes[key] = value
+            text = label.GetLabel()
+            if not text.endswith("*"):
+                label.SetLabel(text + "*")
+        self.values[key] = value
+
+    def OnSize(self, evt):
+        size = self.GetSize()
+        vsize = self.GetVirtualSize()
+        self.SetVirtualSize((size[0], vsize[1]))
+
+        evt.Skip()
 
     def clear_changes(self):
         self.values = {}
         for key, (ctrl, label) in self.ctrls.items():
             label.SetLabel(label.GetLabel().rstrip("*"))
             self.values[key] = ctrl.GetValue()
+
+        self.label_rating.SetLabel(self.label_rating.GetLabel().rstrip("*"))
+        self.values["rating"] = self.ctrl_rating.GetValue()
 
         self.changes = {}
 
@@ -591,11 +656,17 @@ class PropertiesPanel(wx.Panel):
             if len(items) == 1:
                 filename = os.path.basename(items[0]["filepath"])
                 id = str(items[0]["id"])
+                tags = (items[0].get("tags") or "").split()
+                rating = items[0].get("rating") or 0
             else:
                 filename = "< multiple >"
                 id = "< multiple >"
+                tags = ["< multiple >"]
+                rating = 0
             self.text_filename.ChangeValue(filename)
             self.text_id.ChangeValue(id)
+            self.ctrl_rating.ChangeValue(rating)
+            self.list_tags.set_tags(tags)
 
             image = None
             if len(items) == 1:
@@ -827,7 +898,7 @@ class MainWindow(wx.Frame):
         self.aui_mgr.AddPane(self.tag_freq_panel, wx.aui.AuiPaneInfo().Caption("Tag Frequency").Bottom().Right().CloseButton(False).MinSize(250, 250))
 
         self.properties_panel = PropertiesPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Caption("Properties").Left().CloseButton(False).MinSize(250, 250))
+        self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Caption("Properties").Left().CloseButton(False).MinSize(325, 325))
 
         self.aui_mgr.Update()
 
