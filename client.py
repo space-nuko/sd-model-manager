@@ -184,7 +184,11 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def refresh_one_text(self, data):
         i = data["_index"]
         for col, column in enumerate(COLUMNS):
-            text = str(column.callback(data))
+            text = column.callback(data)
+            if text is None:
+                text = ""
+            else:
+                text = str(text)
             if col not in self.text:
                 self.text[col] = {}
             self.text[col][i] = text
@@ -330,11 +334,15 @@ class PropertiesPanel(wx.Panel):
         self.changes = {}
         self.values = {}
 
-        self.text_name = wx.TextCtrl(self)
-        self.text_author = wx.TextCtrl(self)
+        ctrls = [
+            ("display_name", "Name"),
+            ("author", "Author")
+        ]
 
-        self.ctrls["display_name"] = (self.text_name, wx.StaticText(self, label="Name"))
-        self.ctrls["author"] = (self.text_author, wx.StaticText(self, label="Author"))
+        for key, label in ctrls:
+            choices = ["<blank>", "<keep>"]
+            combo_box = wx.ComboBox(self, id=wx.ID_ANY, value="", choices=choices)
+            self.ctrls[key] = (combo_box, wx.StaticText(self, label="Name"))
 
         def handler(key, ctrl, label, evt):
             value = evt.GetString()
@@ -388,14 +396,24 @@ class PropertiesPanel(wx.Panel):
         if not self.changes:
             return
 
+        changes = {}
+
         for ctrl_name, new_value in self.changes.items():
-            changes = {}
+            if new_value == "< blank >":
+                new_value = ""
+            elif new_value == "< keep >":
+                continue
+
             if ctrl_name in self.ctrls:
                 changes[ctrl_name] = new_value
             elif ctrl_name in self.other_ctrls:
                 changes[ctrl_name] = new_value
 
             self.selected_item[ctrl_name] = new_value
+
+        if not changes:
+            self.clear_changes()
+            return
 
         count = 0
         updated = 0
@@ -439,11 +457,14 @@ class PropertiesPanel(wx.Panel):
         else:
             for name, (ctrl, label) in self.ctrls.items():
                 ctrl.SetEditable(True)
-                value = item.get(name)
-                if value:
-                    ctrl.ChangeValue(str(value))
-                else:
-                    ctrl.Clear()
+                value = item.get(name, "< blank >")
+                items = ["< blank >", "< keep >"]
+                if value is None or value == "":
+                    value = "< blank >"
+                elif value not in items:
+                    items.append(value)
+                ctrl.SetItems(items)
+                ctrl.ChangeValue(value)
 
             self.text_filename.ChangeValue(os.path.basename(item["filepath"]))
 
