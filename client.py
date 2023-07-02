@@ -339,6 +339,7 @@ class PropertiesPanel(wx.Panel):
         def handler(key, ctrl, label, evt):
             value = evt.GetString()
             if key in self.values and value != self.values[key]:
+                self.app.frame.toolbar.EnableTool(wx.ID_SAVE, True)
                 self.changes[key] = value
                 text = label.GetLabel()
                 if not text.endswith("*"):
@@ -380,6 +381,8 @@ class PropertiesPanel(wx.Panel):
             self.values[key] = ctrl.GetValue()
 
         self.changes = {}
+
+        self.app.frame.toolbar.EnableTool(wx.ID_SAVE, False)
 
     async def commit_changes(self):
         if not self.changes:
@@ -546,6 +549,8 @@ class MainWindow(wx.Frame):
                                               wx.NullBitmap, wx.ITEM_NORMAL, 'Save', "Long help for 'Save'.", None)
         self.toolbar.Realize()
 
+        self.toolbar.EnableTool(wx.ID_SAVE, False)
+
         wxasync.AsyncBind(wx.EVT_TOOL, self.OnSave, self, id=wx.ID_SAVE)
 
         # self.aui_mgr.AddPane(self.toolbar, wx.aui.AuiPaneInfo().
@@ -577,10 +582,7 @@ class MainWindow(wx.Frame):
         await self.properties_panel.commit_changes()
 
     async def SubItemSelected(self, key, item):
-        if item is None:
-            self.toolbar.EnableTool(wx.ID_SAVE, False)
-        else:
-            self.toolbar.EnableTool(wx.ID_SAVE, True)
+        self.toolbar.EnableTool(wx.ID_SAVE, False)
 
     async def search(self, query):
         self.statusbar.SetStatusText("Searching...")
