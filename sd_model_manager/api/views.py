@@ -1,6 +1,6 @@
 import sys
 from aiohttp import web
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, or_
 from sqlalchemy.orm import Session, selectin_polymorphic
 from sqlakeyset.asyncio import select_page
 import simplejson
@@ -21,9 +21,19 @@ routes = web.RouteTableDef()
 async def index(request):
     page_marker = request.rel_url.query.get("page", None)
     limit = int(request.rel_url.query.get("limit", sys.maxsize))
+    search_query = request.rel_url.query.get("query", None)
 
     async with request.app["db"].AsyncSession() as s:
-        query = select(LoRAModel).order_by(SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
+        query = select(LoRAModel)
+        if search_query:
+            query = query.where(
+                or_(
+                    SDModel.display_name.contains(search_query),
+                    SDModel.filepath.contains(search_query)
+                )
+            )
+        query = query.order_by(SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
+
         page = await select_page(s, query, per_page=limit, page=page_marker)
 
         schema = LoRAModelSchema()

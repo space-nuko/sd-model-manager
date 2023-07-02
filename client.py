@@ -12,9 +12,10 @@ import wx.lib.mixins.listctrl as listmix
 import wxasync
 import asyncio
 import aiohttp
+import aiopubsub
+import simplejson
 from PIL import Image
 from aiohttp import web
-import aiopubsub
 from aiopubsub import Key
 from typing import Callable
 from ast import literal_eval as make_tuple
@@ -72,18 +73,22 @@ class API:
             host = "localhost"
         return f"http://{host}:{self.config.port}"
 
-    async def get_loras(self):
+    async def get_loras(self, query):
+        params = {
+            "limit": 300
+        }
+        if query:
+            params["query"] = query
+
         async with aiohttp.ClientSession() as session:
-            async with session.get(self.base_url() + "/api/v1/loras", params={"limit": 300}) as response:
+            async with session.get(self.base_url() + "/api/v1/loras", params=params) as response:
+                if response.status != 200:
+                    print(await response.text())
                 return await response.json()
 
     async def update_lora(self, id, changes):
-        print("1")
         async with aiohttp.ClientSession() as session:
-            print("2")
-            async with session.patch(self.base_url() + f"/api/v1/lora/{id}", data={"changes": changes}) as response:
-                print("3")
-                print(await response.text())
+            async with session.patch(self.base_url() + f"/api/v1/lora/{id}", data=simplejson.dumps({"changes": changes})) as response:
                 return await response.json()
 
 class ColumnInfo:
@@ -124,7 +129,7 @@ COLUMNS = [
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
     ColumnInfo("Name", lambda m: m["display_name"]),
     ColumnInfo("Author", lambda m: m["author"]),
-    ColumnInfo("Rating", lambda m: m["author"]),
+    ColumnInfo("Rating", lambda m: m["rating"]),
 
     ColumnInfo("Module", lambda m: m["network_module"]),
     ColumnInfo("Dim.", lambda m: m["network_dim"], width=40),
@@ -168,12 +173,21 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.results = results
         self.text = {}
 
+        self.refresh_text()
+
+    def refresh_text(self):
+        self.text = {}
         for i, data in enumerate(self.results["data"]):
-            for col, column in enumerate(COLUMNS):
-                text = str(column.callback(data))
-                if col not in self.text:
-                    self.text[col] = {}
-                self.text[col][i] = text
+            data["_index"] = i
+            self.refresh_one_text(data)
+
+    def refresh_one_text(self, data):
+        i = data["_index"]
+        for col, column in enumerate(COLUMNS):
+            text = str(column.callback(data))
+            if col not in self.text:
+                self.text[col] = {}
+            self.text[col][i] = text
 
     def OnGetItemColumnImage(self, item, col):
         return []
@@ -238,12 +252,19 @@ class ResultsPanel(wx.Panel):
             if column.width is not None:
                 self.list.SetColumnWidth(i, column.width)
 
-        self.button = wx.Button(self, label="Test")
+        self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
+        self.button = wx.Button(self, label="Search")
+
         wxasync.AsyncBind(wx.EVT_BUTTON, self.OnSearch, self.button)
+        wxasync.AsyncBind(wx.EVT_TEXT_ENTER, self.OnSearch, self.search_box)
+
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2.Add(self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5)
+        self.sizer2.Add(self.button, proportion=1, flag=wx.ALL, border=5)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
-        self.sizer.Add(self.button, flag=wx.EXPAND | wx.ALL, border=5)
+        self.sizer.Add(self.sizer2, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
 
@@ -251,7 +272,7 @@ class ResultsPanel(wx.Panel):
         self.list.DeleteAllItems()
         self.list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
 
-        results = await self.app.api.get_loras()
+        results = await self.app.api.get_loras(query)
         self.list.set_results(results)
 
         self.app.frame.statusbar.SetStatusText("Loading results...")
@@ -260,14 +281,12 @@ class ResultsPanel(wx.Panel):
 
         self.sizer.Layout()
 
-        if self.list.results:
+        if len(self.list.results["data"]) > 0:
             self.list.Select(0, 1)
             self.list.Focus(0)
-        else:
-            self.list.Select(0, 0)
 
     async def OnSearch(self, evt):
-        await self.app.frame.search("test")
+        await self.app.frame.search(self.search_box.GetValue())
 
 @dataclass
 class PopupMenuItem:
@@ -318,9 +337,7 @@ class PropertiesPanel(wx.Panel):
         self.ctrls["author"] = (self.text_author, wx.StaticText(self, label="Author"))
 
         def handler(key, ctrl, label, evt):
-            value = ctrl.GetValue()
-            print(key)
-            print(value)
+            value = evt.GetString()
             if key in self.values and value != self.values[key]:
                 self.changes[key] = value
                 text = label.GetLabel()
@@ -360,10 +377,14 @@ class PropertiesPanel(wx.Panel):
         self.values = {}
         for key, (ctrl, label) in self.ctrls.items():
             label.SetLabel(label.GetLabel().rstrip("*"))
+            self.values[key] = ctrl.GetValue()
 
         self.changes = {}
 
     async def commit_changes(self):
+        if not self.changes:
+            return
+
         for ctrl_name, new_value in self.changes.items():
             changes = {}
             if ctrl_name in self.ctrls:
@@ -371,14 +392,22 @@ class PropertiesPanel(wx.Panel):
             elif ctrl_name in self.other_ctrls:
                 changes[ctrl_name] = new_value
 
-            print("1")
-            print(changes)
-            result = await self.app.api.update_lora(self.selected_item["id"], changes)
-            print("2")
-            print(result)
-            updated = result['fields_updated']
+            self.selected_item[ctrl_name] = new_value
 
-            self.app.frame.statusbar.SetStatusText(f"Updated {updated} rows")
+        count = 0
+        updated = 0
+        progress = wx.ProgressDialog("Saving", "Saving changes...", parent=self.app.frame,
+                                     maximum=1, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+
+        result = await self.app.api.update_lora(self.selected_item["id"], changes)
+        count += 1
+        updated += result['fields_updated']
+        progress.Update(count, f"{count}/1")
+
+        self.app.frame.results_panel.list.refresh_one_text(self.selected_item)
+
+        progress.Destroy()
+        self.app.frame.statusbar.SetStatusText(f"Updated {updated} fields")
 
         self.clear_changes()
 
@@ -396,8 +425,6 @@ class PropertiesPanel(wx.Panel):
     async def SubItemSelected(self, key, item):
         await self.prompt_commit_changes()
 
-        print("key")
-        print(key)
         self.selected_item = item
 
         if item is None:
@@ -442,14 +469,12 @@ class FilePanel(wx.Panel):
         self.icon_file = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, icon_size))
 
         self.dir_tree = wx.TreeCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS)
-        self.button = wx.Button(self, label="Test")
 
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "search_finished"), self.SubSearchFinished)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.dir_tree, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
-        self.sizer.Add(self.button, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
 
@@ -521,6 +546,8 @@ class MainWindow(wx.Frame):
                                               wx.NullBitmap, wx.ITEM_NORMAL, 'Save', "Long help for 'Save'.", None)
         self.toolbar.Realize()
 
+        wxasync.AsyncBind(wx.EVT_TOOL, self.OnSave, self, id=wx.ID_SAVE)
+
         # self.aui_mgr.AddPane(self.toolbar, wx.aui.AuiPaneInfo().
         #                      Name("Toolbar").CaptionVisible(False).
         #                      ToolbarPane().Top().CloseButton(False).
@@ -545,6 +572,9 @@ class MainWindow(wx.Frame):
         self.pub = aiopubsub.Publisher(hub, Key("events"))
 
         self.Show()
+
+    async def OnSave(self, evt):
+        await self.properties_panel.commit_changes()
 
     async def SubItemSelected(self, key, item):
         if item is None:
@@ -582,7 +612,7 @@ class App(wxasync.WxAsyncApp):
         return True
 
     async def on_init_callback(self):
-        await self.frame.search("lora")
+        await self.frame.search("")
 
 
 USE_INTERNAL_SERVER = True
