@@ -78,7 +78,7 @@ class API:
 
     async def get_loras(self, query):
         params = {
-            "limit": 300
+            "limit": 500
         }
         if query:
             params["query"] = query
@@ -96,11 +96,13 @@ class ColumnInfo:
     name: str
     callback: Callable
     width: int
+    is_meta: bool
 
-    def __init__(self, name, callback, width=None):
+    def __init__(self, name, callback, width=None, is_meta=False):
         self.name = name
         self.callback = callback
         self.width = width
+        self.is_meta = is_meta
 
 def format_resolution(tuple_str):
     try:
@@ -119,9 +121,9 @@ COLUMNS = [
 
     ColumnInfo("Module", lambda m: m["network_module"]),
 
-    ColumnInfo("Name", lambda m: m["display_name"]),
-    ColumnInfo("Author", lambda m: m["author"]),
-    ColumnInfo("Rating", lambda m: m["rating"]),
+    ColumnInfo("Name", lambda m: m["display_name"], is_meta=True),
+    ColumnInfo("Author", lambda m: m["author"], is_meta=True),
+    ColumnInfo("Rating", lambda m: m["rating"], is_meta=True),
 
     ColumnInfo("Dim.", lambda m: m["network_dim"], width=40),
     ColumnInfo("Alpha", lambda m: int(m["network_alpha"] or 0), width=40),
@@ -146,6 +148,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.results = []
         self.text = {}
+        self.values = {}
         self.clicked = False
 
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
@@ -160,12 +163,6 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
 
-    def OnGetItemText(self, item, col):
-        if not self.results:
-            return ""
-
-        return self.text[col][item]
-
     def OnKeyUp(self, evt):
         self.clicked = True
         evt.Skip()
@@ -177,11 +174,13 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def set_results(self, results):
         self.results = results
         self.text = {}
+        self.values = {}
 
         self.refresh_text()
 
     def refresh_text(self):
         self.text = {}
+        self.values = {}
         for i, data in enumerate(self.results["data"]):
             data["_index"] = i
             self.refresh_one_text(data)
@@ -189,14 +188,16 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def refresh_one_text(self, data):
         i = data["_index"]
         for col, column in enumerate(COLUMNS):
-            text = column.callback(data)
-            if text is None:
+            value = column.callback(data)
+            if value is None:
                 text = ""
             else:
-                text = str(text)
+                text = str(value)
             if col not in self.text:
                 self.text[col] = {}
+                self.values[col] = {}
             self.text[col][i] = text
+            self.values[col][i] = value
 
     def get_selection(self):
         item = self.GetFirstSelected()
@@ -216,7 +217,22 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def OnGetItemAttr(self, item):
         return None
 
+    def OnGetItemText(self, item, col):
+        if not self.results:
+            return ""
+
+        entry = self.values[col][item]
+        if entry is None:
+            column = COLUMNS[col]
+            if not column.is_meta:
+                return "(None)"
+
+        return self.text[col][item]
+
     def OnGetItemTextColour(self, item, col):
+        entry = self.values[col][item]
+        if entry is None:
+            return "gray"
         return None
 
     def OnGetItemToolTip(self, item, col):
@@ -360,7 +376,7 @@ class PropertiesPanel(wx.Panel):
         for key, label in ctrls:
             choices = ["< blank >", "< keep >"]
             combo_box = wx.ComboBox(self, id=wx.ID_ANY, value="", choices=choices)
-            self.ctrls[key] = (combo_box, wx.StaticText(self, label="Name"))
+            self.ctrls[key] = (combo_box, wx.StaticText(self, label=label))
 
         def handler(key, ctrl, label, evt):
             value = evt.GetString()
@@ -600,6 +616,111 @@ class FilePanel(wx.Panel):
         self.dir_tree.ExpandAll()
 
 
+class TagFrequencyList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
+    def __init__(self, *args, app=None, **kwargs):
+        self.app = app
+
+        self.text = []
+        self.tags = {}
+        self.itemDataMap = {}
+        self.itemIndexMap = []
+        self.sortColumn = -1
+        self.sortReverse = False
+
+        wx.ListCtrl.__init__(self, *args, **kwargs)
+        listmix.ListCtrlAutoWidthMixin.__init__(self)
+        self.EnableAlternateRowColours(True)
+        self.InsertColumn(0, "Tag")
+        self.InsertColumn(1, "Count")
+        self.setResizeColumn(0)
+
+        self.Bind(wx.EVT_LIST_COL_CLICK, self.OnColClick)
+
+    def set_tags(self, tags):
+        self.DeleteAllItems()
+
+        self.sortColumn = -1
+        self.sortReverse = False
+        self.tags = tags
+        self.text = []
+
+        if self.tags is None:
+            self.tags = {}
+            self.tags["_"] = {}
+            self.tags["_"]["(Tag frequency not saved)"] = 0
+
+        self.totals = {}
+        for folder, freqs in self.tags.items():
+            for tag, freq in freqs.items():
+                if tag not in self.totals:
+                    self.totals[tag] = 0
+                self.totals[tag] += freq
+
+        if len(self.totals) == 0:
+            self.totals["(No tags)"] = 0
+
+        for tag, freq in self.totals.items():
+            self.text.append((tag.strip(), str(freq)))
+
+        self.itemDataMap = {}
+        for i, (tag, freq) in enumerate(self.totals.items()):
+            self.itemDataMap[i] = (tag, freq)
+
+        self.itemIndexMap = list(self.itemDataMap.keys())
+
+        self.SetItemCount(len(self.text))
+        self.Arrange()
+
+        self.SortByColumn(1)
+
+    def OnGetItemText(self, item, col):
+        index = self.itemIndexMap[item]
+        return self.text[index][col]
+
+    def GetListCtrl(self):
+        return self
+
+    def SortByColumn(self, col):
+        if col == self.sortColumn:
+            self.sortReverse = not self.sortReverse
+        else:
+            self.sortReverse = col == 1
+        self.sortColumn = col
+        def sort(index):
+            cols = self.itemDataMap[index]
+            return cols[col]
+        self.itemIndexMap = list(sorted(self.itemIndexMap, key=sort, reverse=self.sortReverse))
+
+        # redraw the list
+        self.Refresh()
+
+    def OnColClick(self, event):
+        self.SortByColumn(event.GetColumn())
+
+
+class TagFrequencyPanel(wx.Panel):
+    def __init__(self, *args, app=None, **kwargs):
+        self.app = app
+
+        wx.Panel.__init__(self, *args, **kwargs)
+
+        self.list = TagFrequencyList(self, id=wx.ID_ANY, style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES, app=app)
+
+        self.sub = aiopubsub.Subscriber(hub, Key("events"))
+        self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.SetSizerAndFit(self.sizer)
+
+    async def SubItemSelected(self, key, items):
+        item = {}
+        if len(items) == 1:
+            item = items[0]
+        tags = item.get("tag_frequency", {})
+        self.list.set_tags(tags)
+
 class MainWindow(wx.Frame):
     def __init__(self, app, *args, **kwargs):
         wx.Frame.__init__(self, *args, **kwargs)
@@ -637,13 +758,16 @@ class MainWindow(wx.Frame):
         #                      LeftDockable(False).RightDockable(False))
 
         self.results_panel = ResultsPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.results_panel, wx.aui.AuiPaneInfo().Center().CloseButton(False).MinSize(300, 300))
+        self.aui_mgr.AddPane(self.results_panel, wx.aui.AuiPaneInfo().Caption("Search Results").Center().CloseButton(False).MinSize(300, 300))
 
         self.file_panel = FilePanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.file_panel, wx.aui.AuiPaneInfo().Right().CloseButton(False).MinSize(250, 250))
+        self.aui_mgr.AddPane(self.file_panel, wx.aui.AuiPaneInfo().Caption("Files").Top().Right().CloseButton(False).MinSize(250, 250))
+
+        self.tag_freq_panel = TagFrequencyPanel(self, app=self.app)
+        self.aui_mgr.AddPane(self.tag_freq_panel, wx.aui.AuiPaneInfo().Caption("Tag Frequency").Bottom().Right().CloseButton(False).MinSize(250, 250))
 
         self.properties_panel = PropertiesPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Left().CloseButton(False).MinSize(250, 250))
+        self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Caption("Properties").Left().CloseButton(False).MinSize(250, 250))
 
         self.aui_mgr.Update()
 
