@@ -17,7 +17,7 @@ import simplejson
 from PIL import Image
 from aiohttp import web
 from aiopubsub import Key
-from typing import Callable
+from typing import Callable, Optional
 from ast import literal_eval as make_tuple
 
 from main import create_app
@@ -97,12 +97,15 @@ class ColumnInfo:
     callback: Callable
     width: int
     is_meta: bool
+    is_visible: bool
 
     def __init__(self, name, callback, width=None, is_meta=False):
         self.name = name
         self.callback = callback
         self.width = width
         self.is_meta = is_meta
+
+        self.is_visible = True
 
 def format_resolution(tuple_str):
     try:
@@ -142,13 +145,16 @@ COLUMNS = [
 ]
 
 class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
-    def __init__(self, parent):
+    def __init__(self, parent, app=None):
         ultimatelistctrl.UltimateListCtrl.__init__(self, parent, -1,
                                                    agwStyle=ultimatelistctrl.ULC_VIRTUAL|ultimatelistctrl.ULC_REPORT|wx.LC_HRULES|wx.LC_VRULES|ultimatelistctrl.ULC_SHOW_TOOLTIPS)
+
+        self.app = app
 
         self.results = []
         self.text = {}
         self.values = {}
+        self.colmap = {}
         self.clicked = False
 
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
@@ -156,12 +162,19 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
+        self.Bind(wx.EVT_LIST_COL_RIGHT_CLICK, self.OnColumnRightClicked)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnClick)
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
+
+        for col, column in enumerate(COLUMNS):
+            self.InsertColumn(col, column.name)
+            self.SetColumnShown(col, column.is_visible)
+
+        self.refresh_columns()
 
     def OnKeyUp(self, evt):
         self.clicked = True
@@ -178,12 +191,40 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.refresh_text()
 
+    def refresh_columns(self):
+        self.colmap = {}
+        col = 0
+        for i, column in enumerate(COLUMNS):
+            if not column.is_visible:
+                continue
+            self.colmap[col] = i
+
+            if column.width is not None:
+                self.SetColumnWidth(col, column.width)
+            else:
+                self.SetColumnWidth(col, wx.LIST_AUTOSIZE)
+
+            c = self.GetColumn(col)
+            c.SetText(column.name)
+            self.SetColumn(col, c)
+            col += 1
+
     def refresh_text(self):
+        self.app.frame.statusbar.SetStatusText("Loading results...")
+
+        self.DeleteAllItems()
+        self.Refresh()
+
         self.text = {}
         self.values = {}
         for i, data in enumerate(self.results["data"]):
             data["_index"] = i
             self.refresh_one_text(data)
+
+        count = len(self.results["data"])
+        self.SetItemCount(count)
+
+        self.app.frame.statusbar.SetStatusText(f"Done. ({count} records)")
 
     def refresh_one_text(self, data):
         i = data["_index"]
@@ -218,7 +259,8 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         return None
 
     def OnGetItemText(self, item, col):
-        if not self.results:
+        col = self.colmap.get(col)
+        if col is None:
             return ""
 
         entry = self.values[col][item]
@@ -230,6 +272,10 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         return self.text[col][item]
 
     def OnGetItemTextColour(self, item, col):
+        col = self.colmap.get(col)
+        if col is None:
+            return None
+
         entry = self.values[col][item]
         if entry is None:
             return "gray"
@@ -276,6 +322,20 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         path = os.path.join(target["root_path"], target["filepath"])
         open_on_file(path)
 
+    def OnColumnRightClicked(self, evt):
+        items = []
+        for i, col in enumerate(COLUMNS):
+            def check(target, col=col):
+                col.is_visible = not col.is_visible
+                self.SetColumnShown(i, col.is_visible)
+                self.refresh_columns()
+            items.append(PopupMenuItem(col.name, check, checked=col.is_visible))
+        menu = PopupMenu(target=self, items=items)
+        pos = evt.GetPoint()
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        pass
+
 class ResultsPanel(wx.Panel):
     def __init__(self, *args, app=None, **kwargs):
         self.app = app
@@ -283,12 +343,7 @@ class ResultsPanel(wx.Panel):
 
         wx.Panel.__init__(self, *args, **kwargs)
 
-        self.list = ResultsListCtrl(self)
-
-        for i, column in enumerate(COLUMNS):
-            self.list.InsertColumn(i, column.name)
-            if column.width is not None:
-                self.list.SetColumnWidth(i, column.width)
+        self.list = ResultsListCtrl(self, app)
 
         self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
         self.button = wx.Button(self, label="Search")
@@ -313,10 +368,6 @@ class ResultsPanel(wx.Panel):
         results = await self.app.api.get_loras(query)
         self.list.set_results(results)
 
-        self.app.frame.statusbar.SetStatusText("Loading results...")
-
-        self.list.SetItemCount(len(self.list.results["data"]))
-
         self.sizer.Layout()
 
         if len(self.list.results["data"]) > 0:
@@ -326,10 +377,15 @@ class ResultsPanel(wx.Panel):
     async def OnSearch(self, evt):
         await self.app.frame.search(self.search_box.GetValue())
 
-@dataclass
 class PopupMenuItem:
     title: str
     callback: Callable
+    checked: Optional[bool]
+
+    def __init__(self, title, callback, checked=None):
+        self.title = title
+        self.callback = callback
+        self.checked = checked
 
 class PopupMenu(wx.Menu):
     def __init__(self, *args, target=None, items=None, **kwargs):
@@ -345,7 +401,11 @@ class PopupMenu(wx.Menu):
 
         for id in self.order:
             item = self.items[id]
-            self.Append(id, item.title)
+            if item.checked is not None:
+                self.AppendCheckItem(id, item.title)
+                self.Check(id, item.checked)
+            else:
+                self.Append(id, item.title)
             self.Bind(wx.EVT_MENU, self.OnMenuSelection, id=id)
 
     def OnMenuSelection(self, event):
@@ -791,8 +851,6 @@ class MainWindow(wx.Frame):
         await self.results_panel.search(query)
 
         results = self.results_panel.list.results
-
-        self.statusbar.SetStatusText(f"Done. ({len(results['data'])} records)")
 
         self.pub.publish(Key("search_finished"), results)
 
