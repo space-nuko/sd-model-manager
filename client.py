@@ -73,6 +73,19 @@ def find_image_for_model(item):
 
     return image, image_path
 
+def find_image_path_for_model(item):
+    image_path = None
+
+    image_paths = item["preview_images"]
+    if len(image_paths) > 0:
+        for path in image_paths:
+            if os.path.isfile(path):
+                return path
+
+    filepath = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
+    _, image_path = find_image(filepath, load=False)
+    return image_path
+
 def combine_tag_freq(tags):
     totals = {}
     for folder, freqs in tags.items():
@@ -934,9 +947,9 @@ class ResultsGallery(wx.Panel):
         MAX_THUMBS = 250
 
         for item in filtered:
-            image, image_path = find_image_for_model(item)
+            image_path = find_image_path_for_model(item)
 
-            if image is not None:
+            if image_path is not None:
                 thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.splitext(os.path.basename(item["filepath"]))[0], imagehandler=GalleryThumbnailHandler, data=item)
                 thumb.SetId(len(to_show))
                 to_show.append(thumb)

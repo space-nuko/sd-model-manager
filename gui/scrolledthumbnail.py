@@ -1272,6 +1272,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         :param `thumbs`: should be a sequence with instances of :class:`Thumb`;
         """
 
+        from sd_model_manager.utils.timer import Timer
         self._isrunning = False
         self._cache = {}
 
