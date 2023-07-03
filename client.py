@@ -20,7 +20,6 @@ from PIL import Image
 from aiohttp import web
 from aiopubsub import Key
 from typing import Callable, Optional
-from ast import literal_eval as make_tuple
 
 from main import create_app
 from sd_model_manager.utils.common import get_config, find_image, try_load_image
@@ -57,7 +56,7 @@ class API:
 
     async def get_loras(self, query):
         params = {
-            "limit": 500
+            "limit": 1000
         }
         if query:
             params["query"] = query
@@ -78,58 +77,19 @@ class ColumnInfo:
     is_meta: bool
     is_visible: bool
 
-    def __init__(self, name, callback, width=None, is_meta=False):
+    def __init__(self, name, callback, width=None, is_meta=False, is_visible=True):
         self.name = name
         self.callback = callback
         self.width = width
         self.is_meta = is_meta
 
-        self.is_visible = True
-
-def format_resolution(tuple_str):
-    try:
-        t = make_tuple(tuple_str)
-        if isinstance(t, [int, float]):
-            return f"{t}px"
-        elif isinstance(t, tuple):
-            return f"{t[0]}px"
-    except:
-        return tuple_str
+        self.is_visible = is_visible
 
 def format_rating(rating):
     if rating is None or rating <= 0:
         return ""
     rating = min(10, max(0, int(rating)))
     return u'\u2605'*int(rating/2) + u'\u00BD'*int(rating%2!=0)
-
-
-MODEL_TYPES = {
-    "networks.lora": "LoRA",
-    "sd_scripts.networks.lora": "LoRA",
-    "networks.dylora": "DyLoRA",
-}
-
-
-MODEL_ALGOS = {
-    "lora": "LoRA",
-    "locon": "LoCon",
-    "lokr": "LoKR",
-    "loha": "LoHa",
-    "ia3": "(IA)^3",
-}
-
-
-def format_module(m):
-    module = m["network_module"]
-    if module in MODEL_TYPES:
-        return MODEL_TYPES[module]
-
-    if module == "lycoris.kohya":
-        args = m.get("network_args") or {}
-        algo = args.get("algo")
-        return MODEL_ALGOS.get(algo, module)
-
-    return module
 
 
 re_optimizer = re.compile(r'([^.]+)(\(.*\))?$')
@@ -165,21 +125,30 @@ def format_optimizer_args(m):
     # return str(result)
 
 
+def format_network_alpha(v):
+    try:
+        return int(float(v))
+    except Exception:
+        try:
+            return float(v)
+        except Exception:
+            return v
+
 
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
     ColumnInfo("Has Image", lambda m: "★" if len(m["preview_images"] or []) > 0 else "", width=20),
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
 
-    ColumnInfo("Module", format_module, width=60),
+    ColumnInfo("Module", lambda m: m["module_name"], width=60),
 
     ColumnInfo("Name", lambda m: m["display_name"], is_meta=True, width=100),
     ColumnInfo("Author", lambda m: m["author"], is_meta=True, width=100),
     ColumnInfo("Rating", lambda m: format_rating(m["rating"]), is_meta=True, width=60),
 
-    ColumnInfo("Dim.", lambda m: m["network_dim"], width=40),
-    ColumnInfo("Alpha", lambda m: int(m["network_alpha"] or 0), width=40),
-    ColumnInfo("Resolution", lambda m: format_resolution(m["resolution"])),
+    ColumnInfo("Dim.", lambda m: format_network_alpha(m["network_dim"]), width=60),
+    ColumnInfo("Alpha", lambda m: format_network_alpha(m["network_alpha"]), width=60),
+    ColumnInfo("Resolution", lambda m: m["resolution_width"]),
     ColumnInfo("Unique Tags", lambda m: m["unique_tags"]),
     ColumnInfo("Learning Rate", lambda m: m["learning_rate"]),
     ColumnInfo("UNet LR", lambda m: m["unet_lr"]),
@@ -193,11 +162,13 @@ COLUMNS = [
     ColumnInfo("# Epochs", lambda m: m["num_epochs"]),
     ColumnInfo("Epoch", lambda m: m["epoch"]),
     ColumnInfo("Total Batch Size", lambda m: m["total_batch_size"]),
-    ColumnInfo("Training Comment", lambda m: m["training_comment"], width=140),
+    ColumnInfo("Keep Tokens", lambda m: m["keep_tokens"]),
+    ColumnInfo("Noise Offset", lambda m: m["noise_offset"]),
+    ColumnInfo("Training Comment", lambda m: m["training_comment"], width=140, is_visible=False),
 
     ColumnInfo("Tags", lambda m: m["tags"], is_meta=True, width=140),
-    ColumnInfo("Keywords", lambda m: m["keywords"], is_meta=True, width=140),
-    ColumnInfo("Source", lambda m: m["source"], is_meta=True, width=100),
+    ColumnInfo("Keywords", lambda m: m["keywords"], is_meta=True, width=140, is_visible=False),
+    ColumnInfo("Source", lambda m: m["source"], is_meta=True, width=100, is_visible=False),
 
     ColumnInfo("Filepath", lambda m: os.path.join(m["root_path"], m["filepath"]), width=600),
 ]
@@ -249,7 +220,8 @@ METADATA_ORDER = [
     "mixed_precision",
     "full_fp16",
     "v2",
-    "resolution",
+    "resolution_width",
+    "resolution_height",
     "clip_skip",
     "max_token_length",
     "color_aug",
@@ -443,7 +415,6 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def refresh_filter(self):
         data = self.results["data"]
         self.filtered = []
-        print(self.filter)
         if self.filter is None:
             self.filtered = data
         else:
@@ -643,6 +614,7 @@ class ResultsPanel(wx.Panel):
         self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
         self.button = wx.Button(self, label="Search")
 
+        self.pub = aiopubsub.Publisher(hub, Key("events"))
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
 
@@ -663,7 +635,14 @@ class ResultsPanel(wx.Panel):
         self.list.filter = path
         self.list.refresh_filter()
 
+        if len(self.list.filtered) > 0:
+            self.list.Select(0, 1)
+            self.list.Focus(0)
+            self.pub.publish(Key("item_selected"), self.list.get_selection())
+
     async def search(self, query):
+        self.pub.publish(Key("item_selected"), [])
+
         self.list.DeleteAllItems()
         self.list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
 
@@ -672,9 +651,10 @@ class ResultsPanel(wx.Panel):
 
         self.sizer.Layout()
 
-        if len(self.list.results["data"]) > 0:
+        if len(self.list.filtered) > 0:
             self.list.Select(0, 1)
             self.list.Focus(0)
+            self.pub.publish(Key("item_selected"), self.list.get_selection())
 
     async def OnSearch(self, evt):
         await self.app.frame.search(self.search_box.GetValue())
@@ -798,7 +778,8 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ("source", "Source", None, None),
             ("tags", "Tags", None, None),
             ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 60))),
-            ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140)))
+            ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140))),
+            ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140)))
         ]
 
         for key, label, style, size in ctrls:
@@ -850,10 +831,12 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.sizer.Add(self.ctrls["tags"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
-        self.sizer.Add(self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["description"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.label_rating, flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrl_rating, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["description"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["notes"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["notes"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
         # self.sizer.Add(wx.StaticText(self, label="Preview Image"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         # self.sizer.Add(self.text_preview_image, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)

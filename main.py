@@ -16,7 +16,7 @@ async def create_app(argv=None) -> web.Application:
 
     db = DB()
     await db.init()
-    # await db.scan(app["config"].model_paths)
+    await db.scan(app["config"].model_paths)
 
     app["db"] = db
 

@@ -17,6 +17,7 @@ class SDModel(Base):
 
     root_path = Column(String)
     filepath = Column(String)
+    filename = Column(String)
     preview_images = Column(JSON, nullable=True)
     display_name = Column(String, nullable=True)
     author = Column(String, nullable=True)
@@ -25,6 +26,7 @@ class SDModel(Base):
     description = Column(String, nullable=True)
     rating = Column(Integer, nullable=True)
     tags = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "sd_model",
@@ -67,13 +69,15 @@ class LoRAModel(SDModel):
     lr_warmup_steps = Column(Integer, nullable=True)
     lr_scheduler = Column(String, nullable=True)
     network_module = Column(String, nullable=True)
-    network_dim = Column(Integer, nullable=True)
-    network_alpha = Column(Numeric, nullable=True)
+    module_name = Column(String, nullable=True)
+    network_dim = Column(String, nullable=True)
+    network_alpha = Column(String, nullable=True)
     network_args = Column(JSON, nullable=True)
     mixed_precision = Column(Boolean, nullable=True)
     full_fp16 = Column(Boolean, nullable=True)
     v2 = Column(Boolean, nullable=True)
-    resolution = Column(String, nullable=True)
+    resolution_width = Column(Integer, nullable=True)
+    resolution_height = Column(Integer, nullable=True)
     clip_skip = Column(Integer, nullable=True)
     max_token_length = Column(Integer, nullable=True)
     color_aug = Column(Boolean, nullable=True)
@@ -85,7 +89,7 @@ class LoRAModel(SDModel):
     min_bucket_reso = Column(Integer, nullable=True)
     max_bucket_reso = Column(Integer, nullable=True)
     seed = Column(Integer, nullable=True)
-    keep_tokens = Column(Boolean, nullable=True)
+    keep_tokens = Column(Integer, nullable=True)
     noise_offset = Column(Numeric, nullable=True)
     dataset_dirs = Column(JSON, nullable=True)
     reg_dataset_dirs = Column(JSON, nullable=True)

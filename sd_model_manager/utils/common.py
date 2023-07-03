@@ -43,7 +43,7 @@ def try_load_image(file):
     try:
         image = Image.open(file)
         image.load()
-        return image
+        return image.convert("RGB")
     except Exception as ex:
         return None
 

@@ -6,6 +6,7 @@ import glob
 import tqdm
 import asyncio
 import simplejson
+from ast import literal_eval as make_tuple
 from PIL import Image
 from datetime import datetime
 from sqlalchemy import select, delete, func
@@ -29,13 +30,19 @@ def to_bool(s):
 def to_int(s):
     if s is None or s == "None":
         return None
-    return int(s)
+    return int(float(s))
 
 
 def to_float(s):
     if s is None or s == "None":
         return None
     return float(s)
+
+
+def to_str(s):
+    if s is None or s == "None":
+        return None
+    return str(s)
 
 
 def to_datetime(s):
@@ -64,6 +71,17 @@ def to_unique_tags(s):
     return len(tags)
 
 
+def format_resolution(tuple_str, idx):
+    try:
+        t = make_tuple(tuple_str)
+        if isinstance(t, (int, float)):
+            return int(t)
+        elif isinstance(t, tuple):
+            return t[idx]
+    except Exception as ex:
+        return None
+
+
 PREVIEW_EXTS = [".preview.png", ".png"]
 def get_preview_image(path):
     dirname = os.path.dirname(path)
@@ -80,6 +98,36 @@ def get_preview_image(path):
                 return out.getvalue()
 
     return None
+
+
+MODEL_TYPES = {
+    "networks.lora": "LoRA",
+    "sd_scripts.networks.lora": "LoRA",
+    "networks.dylora": "DyLoRA",
+}
+
+
+MODEL_ALGOS = {
+    "lora": "LoRA",
+    "locon": "LoCon",
+    "lokr": "LoKR",
+    "loha": "LoHa",
+    "ia3": "(IA)^3",
+}
+
+
+def format_module_name(m):
+    module = m.get("ss_network_module", None)
+
+    if module in MODEL_TYPES:
+        return MODEL_TYPES[module]
+
+    if module == "lycoris.kohya":
+        args = simplejson.loads(m.get("ss_network_args") or "{}")
+        algo = args.get("algo")
+        return MODEL_ALGOS.get(algo, module)
+
+    return module
 
 
 class DB:
@@ -129,6 +177,7 @@ class DB:
                     lora_model = LoRAModel(
                         root_path=path,
                         filepath=os.path.relpath(f, path),
+                        filename=os.path.basename(f),
                         preview_images=preview_images,
                         display_name=metadata.get("ssmd_display_name", None),
                         author=metadata.get("ssmd_author", None),
@@ -158,13 +207,15 @@ class DB:
                         lr_warmup_steps=to_int(metadata.get("ss_lr_warmup_steps", None)),
                         lr_scheduler=metadata.get("ss_lr_scheduler", None),
                         network_module=metadata.get("ss_network_module", None),
-                        network_dim=to_int(metadata.get("ss_network_dim", None)),
-                        network_alpha=to_float(metadata.get("ss_network_alpha", None)),
+                        module_name=format_module_name(metadata),
+                        network_dim=metadata.get("ss_network_dim", None),
+                        network_alpha=metadata.get("ss_network_alpha", None),
                         network_args=to_json(metadata.get("ss_network_args", None)),
                         mixed_precision=to_bool(metadata.get("ss_mixed_precision", None)),
                         full_fp16=to_bool(metadata.get("ss_full_fp16", None)),
                         v2=to_bool(metadata.get("ss_v2", None)),
-                        resolution=metadata.get("ss_resolution", None),
+                        resolution_width=format_resolution(metadata.get("ss_resolution", None), 0),
+                        resolution_height=format_resolution(metadata.get("ss_resolution", None), 1),
                         clip_skip=to_int(metadata.get("ss_clip_skip", None)),
                         max_token_length=to_int(metadata.get("ss_max_token_length", None)),
                         color_aug=to_bool(metadata.get("ss_color_aug", None)),
@@ -187,7 +238,7 @@ class DB:
                         vae_name=metadata.get("ss_vae_name", None),
                         vae_hash=metadata.get("ss_vae_hash", None),
                         new_vae_hash=metadata.get("ss_new_vae_hash", None),
-                        training_comment=metadata.get("ss_training_comment", None),
+                        training_comment=to_str(metadata.get("ss_training_comment", None)),
                         bucket_info=to_json(metadata.get("ss_bucket_info", None)),
                         sd_scripts_commit_hash=metadata.get("ss_sd_scripts_commit_hash", None),
                         noise_offset=to_float(metadata.get("ss_noise_offset", None)),

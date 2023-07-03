@@ -6,6 +6,7 @@ from sqlakeyset.asyncio import select_page
 import simplejson
 
 from sd_model_manager.models.sd_models import SDModel, LoRAModel, LoRAModelSchema
+from sd_model_manager.query import build_search_query
 
 def paging_to_json(paging, limit):
     return {
@@ -26,13 +27,8 @@ async def index(request):
     async with request.app["db"].AsyncSession() as s:
         query = select(LoRAModel)
         if search_query:
-            query = query.where(
-                or_(
-                    SDModel.display_name.contains(search_query),
-                    SDModel.filepath.contains(search_query)
-                )
-            )
-        query = query.order_by(SDModel.id).options(selectin_polymorphic(SDModel, [LoRAModel]))
+            query = build_search_query(query, search_query)
+        query = query.options(selectin_polymorphic(SDModel, [LoRAModel]))
 
         page = await select_page(s, query, per_page=limit, page=page_marker)
 
@@ -83,24 +79,21 @@ async def update(request):
 
         updated = 0
 
-        if "display_name" in changes:
-            row.display_name = changes["display_name"]
-            updated += 1
-        if "author" in changes:
-            row.author = changes["author"]
-            updated += 1
-        if "source" in changes:
-            row.source = changes["source"]
-            updated += 1
-        if "tags" in changes:
-            row.tags = changes["tags"]
-            updated += 1
-        if "keywords" in changes:
-            row.keywords = changes["keywords"]
-            updated += 1
-        if "rating" in changes:
-            row.rating = changes["rating"]
-            updated += 1
+        fields = [
+            "display_name",
+            "author",
+            "source",
+            "tags",
+            "keywords",
+            "description",
+            "notes",
+            "rating",
+        ]
+
+        for field in fields:
+            if field in changes:
+                setattr(row, field, changes[field])
+                updated += 1
 
         await s.commit()
 
