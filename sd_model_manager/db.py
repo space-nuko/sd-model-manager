@@ -153,7 +153,6 @@ class DB:
             print("Database was newly created, running initial scan.")
             await self.scan(model_paths)
 
-
     async def scan(self, paths):
         for p in paths:
             if not os.path.isdir(p):

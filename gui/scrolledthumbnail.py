@@ -1578,10 +1578,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         caption = caption + "..."
 
         while sw > width:
-            caption = caption[1:]
+            caption = caption[:-1]
             sw, sh = dc.GetTextExtent(caption)
 
-        return "..." + caption[0:-3]
+        return caption[:-3] + "..."
 
 
     def DrawThumbnail(self, bmp, thumb, index):

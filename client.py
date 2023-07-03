@@ -171,7 +171,7 @@ COLUMNS = [
     ColumnInfo("Keywords", lambda m: m["keywords"], is_meta=True, width=140, is_visible=False),
     ColumnInfo("Source", lambda m: m["source"], is_meta=True, width=100, is_visible=False),
 
-    ColumnInfo("Filepath", lambda m: os.path.join(m["root_path"], m["filepath"]), width=600),
+    ColumnInfo("Filepath", lambda m: os.path.normpath(os.path.join(m["root_path"], m["filepath"])), width=600),
 ]
 
 IGNORE_FIELDS = set([
@@ -659,7 +659,7 @@ class ResultsNotebook(wx.Panel):
         if len(list.filtered) > 0:
             list.Select(0, 1)
             list.Focus(0)
-            self.pub.publish(Key("item_selected"), self.list.get_selection())
+            self.pub.publish(Key("item_selected"), list.get_selection())
 
         self.results_gallery.needs_update = True
         if self.notebook.GetSelection() == 1:
@@ -770,6 +770,7 @@ class ResultsGallery(wx.Panel):
 
         self.needs_update = False
         to_show = []
+        MAX_THUMBS = 250
 
         for item in filtered:
             image = None
@@ -787,11 +788,11 @@ class ResultsGallery(wx.Panel):
                 image, image_path = find_image(path, load=True)
 
             if image is not None:
-                thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.basename(item["filepath"]), imagehandler=GalleryThumbnailHandler, data=item)
+                thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.splitext(os.path.basename(item["filepath"]))[0], imagehandler=GalleryThumbnailHandler, data=item)
                 thumb.SetId(len(to_show))
                 to_show.append(thumb)
 
-            if len(to_show) > 250:
+            if len(to_show) >= MAX_THUMBS:
                 break
 
         self.gallery.ShowThumbs(to_show)
@@ -931,8 +932,8 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ("author", "Author", None, None),
             ("source", "Source", None, None),
             ("tags", "Tags", None, None),
-            ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 60))),
-            ("negative_keywords", "Negative Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 60))),
+            ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
+            ("negative_keywords", "Negative Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
             ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140))),
             ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140)))
         ]
@@ -980,12 +981,16 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.sizer.Add(self.ctrls["display_name"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["author"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["author"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["version"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["version"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["source"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["source"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["tags"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["tags"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrls["keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(self.ctrls["negative_keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(self.ctrls["negative_keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.label_rating, flag=wx.ALL | wx.ALIGN_TOP, border=2)
         self.sizer.Add(self.ctrl_rating, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
         self.sizer.Add(self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
