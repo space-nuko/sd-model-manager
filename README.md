@@ -4,6 +4,8 @@ A desktop application and companion web server for browsing and managing Stable 
 
 Can be used standalone with the included frontend, embedded into ComfyUI for use with their ecosystem (*TODO*), or repurposed as an independent API server.
 
+**NOTE:** Still alpha-quality for the time being.
+
 ## Usage
 
 First install the requirements:
