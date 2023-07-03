@@ -12,7 +12,7 @@ from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
-from sd_model_manager.utils.common import PATH
+from sd_model_manager.utils.common import PATH, find_image
 from sd_model_manager.utils import safetensors_hack
 from sd_model_manager.models.sd_models import Base, LoRAModel
 
@@ -118,12 +118,18 @@ class DB:
                         metadata = safetensors_hack.read_metadata(f)
                     except:
                         continue
+
+                    preview_images = []
+                    image_data, image_path = find_image(f, load=True)
+                    if image_data is not None:
+                        preview_images.append(image_path)
+
                     # if "ss_lr_scheduler" not in metadata:
                     #     continue
                     lora_model = LoRAModel(
                         root_path=path,
                         filepath=os.path.relpath(f, path),
-                        # preview_image=get_preview_image(f),
+                        preview_images=preview_images,
                         display_name=metadata.get("ssmd_display_name", None),
                         author=metadata.get("ssmd_author", None),
                         source=metadata.get("ssmd_source", None),
@@ -177,15 +183,23 @@ class DB:
                         unique_tags=to_unique_tags(metadata.get("ss_tag_frequency", None)),
                         sd_model_name=metadata.get("ss_sd_model_name", None),
                         sd_model_hash=metadata.get("ss_sd_model_hash", None),
-                        sd_new_model_hash=metadata.get("ss_sd_new_model_hash", None),
-                        sd_vae_name=metadata.get("ss_sd_vae_name", None),
-                        sd_vae_hash=metadata.get("ss_sd_vae_hash", None),
-                        sd_new_vae_hash=metadata.get("ss_sd_new_vae_hash", None),
+                        new_sd_model_hash=metadata.get("ss_new_sd_model_hash", None),
                         vae_name=metadata.get("ss_vae_name", None),
+                        vae_hash=metadata.get("ss_vae_hash", None),
+                        new_vae_hash=metadata.get("ss_new_vae_hash", None),
                         training_comment=metadata.get("ss_training_comment", None),
                         bucket_info=to_json(metadata.get("ss_bucket_info", None)),
                         sd_scripts_commit_hash=metadata.get("ss_sd_scripts_commit_hash", None),
-                        noise_offset=to_float(metadata.get("ss_noise_offset", None))
+                        noise_offset=to_float(metadata.get("ss_noise_offset", None)),
+                        optimizer=metadata.get("ss_optimizer", None),
+                        max_grad_norm=to_float(metadata.get("ss_max_grad_norm", None)),
+                        caption_dropout_rate=to_float(metadata.get("ss_caption_dropout_rate", None)),
+                        caption_dropout_every_n_epochs=to_int(metadata.get("ss_caption_dropout_every_n_epochs", None)),
+                        caption_tag_dropout_rate=to_float(metadata.get("ss_caption_tag_dropout_rate", None)),
+                        face_crop_aug_range=metadata.get("ss_face_crop_aug_range", None),
+                        prior_loss_weight=to_float(metadata.get("ss_prior_loss_weight", None)),
+                        min_snr_gamma=to_float(metadata.get("ss_min_snr_gamma", None)),
+                        scale_weight_norms=to_float(metadata.get("ss_scale_weight_norms", None)),
                     )
                     session.add(lora_model)
 

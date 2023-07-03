@@ -3,6 +3,7 @@
 import os
 import pathlib
 import subprocess
+import re
 import wx
 import wx.aui
 import wx.lib.newevent
@@ -22,7 +23,7 @@ from typing import Callable, Optional
 from ast import literal_eval as make_tuple
 
 from main import create_app
-from sd_model_manager.utils.common import get_config
+from sd_model_manager.utils.common import get_config, find_image, try_load_image
 from sd_model_manager.utils.timer import Timer
 from gui.image_panel import ImagePanel
 from gui.rating_ctrl import RatingCtrl, EVT_RATING_CHANGED
@@ -42,38 +43,6 @@ def open_on_file(path):
         subprocess.run([explorer, '/select,', path])
     else:
         os.startfile(os.path.dirname(path))
-
-def find_image(item, load=False):
-    def try_load(file):
-        if not os.path.isfile(file):
-            return None
-        try:
-            image = Image.open(file)
-            image.load()
-            width, height = image.size
-            return wx.Bitmap.FromBuffer(width, height, image.tobytes())
-        except Exception as ex:
-            return None
-
-    path = os.path.dirname(os.path.join(item["root_path"], item["filepath"]))
-    basename = os.path.splitext(os.path.basename(item["filepath"]))[0]
-
-    for s in [".preview.png", ".png"]:
-        file = os.path.join(path, basename + s)
-        if load:
-            image = try_load(file)
-            if image:
-                return image, file
-        else:
-            return None, file
-
-    for fname in os.listdir(path):
-        file = os.path.realpath(os.path.join(path, fname))
-        if basename in file:
-            image = try_load(file)
-            if image:
-                return image, file
-    return None, None
 
 class API:
     def __init__(self, config):
@@ -163,9 +132,43 @@ def format_module(m):
     return module
 
 
+re_optimizer = re.compile(r'([^.]+)(\(.*\))?$')
+
+
+def format_optimizer(m):
+    optimizer = m["optimizer"]
+    if optimizer is None:
+        return None
+
+    matches = re_optimizer.search(optimizer)
+    if matches is None:
+        return optimizer
+    return matches[1]
+
+
+def format_optimizer_args(m):
+    optimizer = m["optimizer"]
+    if optimizer is None:
+        return None
+
+    matches = re_optimizer.search(optimizer)
+    if matches is None or matches[2] is None:
+        return None
+    return matches[2].lstrip("(").rstrip(")")
+
+    # result = {}
+    # for pair in args.split(","):
+    #     spl = pair.split("=", 1)
+    #     if len(spl) > 1:
+    #         result[spl[0]] = spl[1]
+
+    # return str(result)
+
+
+
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
-    ColumnInfo("Has Image", lambda m: "★" if find_image(m)[1] is not None else "", width=20),
+    ColumnInfo("Has Image", lambda m: "★" if len(m["preview_images"] or []) > 0 else "", width=20),
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
 
     ColumnInfo("Module", format_module, width=60),
@@ -181,12 +184,16 @@ COLUMNS = [
     ColumnInfo("Learning Rate", lambda m: m["learning_rate"]),
     ColumnInfo("UNet LR", lambda m: m["unet_lr"]),
     ColumnInfo("Text Encoder LR", lambda m: m["text_encoder_lr"]),
+    ColumnInfo("Optimizer", format_optimizer, width=120),
+    ColumnInfo("Optimizer Args", format_optimizer_args, width=240),
+    ColumnInfo("Scheduler", lambda m: m["lr_scheduler"], width=80),
     ColumnInfo("# Train Images", lambda m: m["num_train_images"]),
     ColumnInfo("# Reg Images", lambda m: m["num_reg_images"]),
     ColumnInfo("# Batches/Epoch", lambda m: m["num_batches_per_epoch"]),
     ColumnInfo("# Epochs", lambda m: m["num_epochs"]),
     ColumnInfo("Epoch", lambda m: m["epoch"]),
     ColumnInfo("Total Batch Size", lambda m: m["total_batch_size"]),
+    ColumnInfo("Training Comment", lambda m: m["training_comment"], width=140),
 
     ColumnInfo("Tags", lambda m: m["tags"], is_meta=True, width=140),
     ColumnInfo("Keywords", lambda m: m["keywords"], is_meta=True, width=140),
@@ -194,6 +201,188 @@ COLUMNS = [
 
     ColumnInfo("Filepath", lambda m: os.path.join(m["root_path"], m["filepath"]), width=600),
 ]
+
+IGNORE_FIELDS = set([
+    "preview_images",
+    "tag_frequency",
+    "dataset_dirs",
+    "reg_dataset_dirs",
+    "bucket_info",
+    "name",
+    "author",
+    "rating",
+    "tags",
+    "keywords",
+    "source",
+    "_index",
+    "id",
+    "type"
+])
+
+METADATA_ORDER = [
+    "output_name",
+    "root_path",
+    "filepath",
+    "training_started_at",
+    "training_finished_at",
+    "session_id",
+    "learning_rate",
+    "text_encoder_lr",
+    "unet_lr",
+    "num_train_images",
+    "num_reg_images",
+    "num_batches_per_epoch",
+    "max_train_steps",
+    "lr_warmup_steps",
+    "batch_size_per_device",
+    "total_batch_size",
+    "num_epochs",
+    "epoch",
+    "gradient_checkpointing",
+    "gradient_accumulation_steps",
+    "optimizer",
+    "lr_scheduler",
+    "network_module",
+    "network_dim",
+    "network_alpha",
+    "network_args",
+    "mixed_precision",
+    "full_fp16",
+    "v2",
+    "resolution",
+    "clip_skip",
+    "max_token_length",
+    "color_aug",
+    "flip_aug",
+    "random_crop",
+    "shuffle_caption",
+    "cache_latents",
+    "enable_bucket",
+    "min_bucket_reso",
+    "max_bucket_reso",
+    "seed",
+    "keep_tokens",
+    "noise_offset",
+    "max_grad_norm",
+    "caption_dropout_rate",
+    "caption_dropout_every_n_epochs",
+    "caption_tag_dropout_rate",
+    "face_crop_aug_range",
+    "prior_loss_weight",
+    "min_snr_gamma",
+    "scale_weight_norms",
+    "unique_tags",
+    "model_hash",
+    "legacy_hash",
+    "sd_model_name",
+    "sd_model_hash",
+    "new_sd_model_hash",
+    "vae_name",
+    "vae_hash",
+    "new_vae_hash",
+    "vae_name",
+    "training_comment",
+    "sd_scripts_commit_hash",
+]
+
+class MetadataList(ultimatelistctrl.UltimateListCtrl):
+    def __init__(self, parent, item, app=None):
+        super().__init__(parent=parent, id=wx.ID_ANY, agwStyle=ultimatelistctrl.ULC_VIRTUAL|ultimatelistctrl.ULC_REPORT|wx.LC_HRULES|wx.LC_VRULES)
+
+        self.item = item
+        self.app = app
+
+        self.InsertColumn(0, "Key")
+        self.InsertColumn(1, "Value")
+        self.SetColumnWidth(0, parent.FromDIP(140))
+        self.SetColumnWidth(1, ultimatelistctrl.ULC_AUTOSIZE_FILL)
+
+        self.fields = [(k, v) for k, v in self.item.items() if k in METADATA_ORDER]
+        self.fields = list(sorted(self.fields, key=lambda i: METADATA_ORDER.index(i[0])))
+
+        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
+
+        self.SetItemCount(len(self.fields))
+
+    def OnGetItemColumnImage(self, item, col):
+        return []
+
+    def OnGetItemImage(self, item):
+        return []
+
+    def OnGetItemAttr(self, item):
+        return None
+
+    def OnGetItemText(self, item, col):
+        v = self.fields[item][col]
+        if col == 1:
+            if v is None:
+                return "(None)"
+            elif isinstance(v, str):
+                return f"\"{v}\""
+        return str(v)
+
+    def OnGetItemTextColour(self, item, col):
+        v = self.fields[item][col]
+        if col == 1 and v is None:
+            return "gray"
+        return None
+
+    def OnGetItemToolTip(self, item, col):
+        return None
+
+    def OnGetItemKind(self, item):
+        return 0
+
+    def OnGetItemColumnKind(self, item, col):
+        return 0
+
+    def OnListItemRightClicked(self, evt):
+        i = self.GetFirstSelected()
+        while i != -1:
+            self.Select(i, 0)
+            i = self.GetNextSelected(i)
+        self.Select(evt.GetIndex())
+
+        target = self.fields[evt.GetIndex()]
+
+        menu = PopupMenu(target=target, event=evt, items=[
+            PopupMenuItem("Copy Value", self.copy_value)
+        ])
+        pos = evt.GetPoint()
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+
+    def copy_value(self, target, event):
+        value = target[event.GetColumn()]
+
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(str(value)))
+            wx.TheClipboard.Close()
+
+            self.app.frame.statusbar.SetStatusText(f"Copied: {value}")
+
+class MetadataDialog(wx.Dialog):
+    def __init__(self, parent, item, app=None):
+        super().__init__(parent=parent, id=wx.ID_ANY, title="Model Metadata", size=parent.FromDIP(wx.Size(600, 700)))
+
+        self.SetEscapeId(12345)
+
+        self.item = item
+        self.app = app
+
+        self.list = MetadataList(self, item, app=self.app)
+        self.buttonOk = wx.Button(self, wx.ID_OK)
+
+        self.sizerB = wx.StdDialogButtonSizer()
+        self.sizerB.AddButton(self.buttonOk)
+        self.sizerB.Realize()
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.list, proportion=10, border=2, flag=wx.EXPAND|wx.ALIGN_TOP|wx.ALL)
+        self.sizer.Add(self.sizerB, border=2, flag=wx.EXPAND|wx.ALL)
+
+        self.SetSizer(self.sizer)
 
 class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def __init__(self, parent, app=None):
@@ -213,6 +402,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
         # https://github.com/wxWidgets/wxWidgets/issues/4541
         self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnListItemActivated)
         self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
         self.Bind(wx.EVT_LIST_COL_RIGHT_CLICK, self.OnColumnRightClicked)
@@ -388,6 +578,13 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         selection = self.get_selection()
         self.pub.publish(Key("item_selected"), selection)
 
+    def OnListItemActivated(self, evt):
+        target = self.filtered[evt.GetIndex()]
+        dialog = MetadataDialog(self, target, app=self.app)
+        dialog.CenterOnParent(wx.BOTH)
+        dialog.ShowModal()
+        dialog.Destroy()
+
     def OnListItemRightClicked(self, evt):
         i = self.GetFirstSelected()
         while i != -1:
@@ -397,21 +594,33 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         target = self.filtered[evt.GetIndex()]
 
-        menu = PopupMenu(target=target, items=[
-            PopupMenuItem("Open Folder", self.open_folder)
+        menu = PopupMenu(target=target, event=evt, items=[
+            PopupMenuItem("Open Folder", self.open_folder),
+            PopupMenuItem("Copy Value", self.copy_value)
         ])
         pos = evt.GetPoint()
         self.PopupMenu(menu, pos)
         menu.Destroy()
 
-    def open_folder(self, target):
+    def open_folder(self, target, event):
         path = os.path.join(target["root_path"], target["filepath"])
         open_on_file(path)
+
+    def copy_value(self, target, event):
+        col = self.colmap[event.GetColumn()]
+        column = COLUMNS[col]
+        value = column.callback(target)
+
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(str(value)))
+            wx.TheClipboard.Close()
+
+            self.app.frame.statusbar.SetStatusText(f"Copied: {value}")
 
     def OnColumnRightClicked(self, evt):
         items = []
         for i, col in enumerate(COLUMNS):
-            def check(target, col=col):
+            def check(target, event, col=col):
                 col.is_visible = not col.is_visible
                 self.SetColumnShown(i, col.is_visible)
                 self.refresh_columns()
@@ -481,9 +690,10 @@ class PopupMenuItem:
         self.checked = checked
 
 class PopupMenu(wx.Menu):
-    def __init__(self, *args, target=None, items=None, **kwargs):
+    def __init__(self, *args, target=None, event=None, items=None, **kwargs):
         wx.Menu.__init__(self, *args, **kwargs)
         self.target = target
+        self.event = event
         self.items = {}
         self.order = []
 
@@ -503,7 +713,7 @@ class PopupMenu(wx.Menu):
 
     def OnMenuSelection(self, event):
         item = self.items[event.GetId()]
-        item.callback(self.target)
+        item.callback(self.target, self.event)
 
 class MetadataTagsList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent):
@@ -544,10 +754,21 @@ class PreviewImagePanel(wx.Panel):
     async def SubItemSelected(self, key, items):
         image = None
         if len(items) == 1:
-            image, path = find_image(items[0], load=True)
+            image_paths = items[0]["preview_images"]
+            if len(image_paths) > 0:
+                for path in image_paths:
+                    image = try_load_image(path)
+                    if image is not None:
+                        break
+
+            if image is None:
+                filepath = os.path.normpath(os.path.join(items[0]["root_path"], items[0]["filepath"]))
+                image, _ = find_image(filepath, load=True)
 
         if image:
-            self.image_view.LoadBitmap(image)
+            width, height = image.size
+            bitmap = wx.Bitmap.FromBuffer(width, height, image.tobytes())
+            self.image_view.LoadBitmap(bitmap)
             # self.text_preview_image.ChangeValue(path)
         else:
             self.image_view.Clear()
@@ -737,6 +958,9 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 await self.commit_changes()
 
     async def SubItemSelected(self, key, items):
+        if items == self.selected_items:
+            return
+
         await self.prompt_commit_changes()
 
         self.selected_items = items
@@ -816,10 +1040,11 @@ class FilePanel(wx.Panel):
         self.icons = wx.ImageList(icon_size[0], icon_size[1])
 
         self.icon_folder_closed = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, icon_size))
-        self.icon_folder_open = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, icon_size))
+        self.icon_folder_open = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, icon_size))
         self.icon_file = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, icon_size))
 
         self.dir_tree = wx.TreeCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS)
+        self.dir_tree.SetImageList(self.icons)
         self.button_clear = wx.Button(self, label="Clear Filter")
         self.button_clear.Disable()
 
@@ -884,7 +1109,7 @@ class FilePanel(wx.Panel):
                 if exist:
                     root = exist
                 else:
-                    root = self.dir_tree.AppendItem(root, part)
+                    root = self.dir_tree.AppendItem(root, part)
 
                     is_file = i == len(path.parts) - 1
                     if is_file:
@@ -893,7 +1118,8 @@ class FilePanel(wx.Panel):
                         self.dir_tree.SetItemImage(root, self.icon_folder_closed, wx.TreeItemIcon_Normal)
                         self.dir_tree.SetItemImage(root, self.icon_folder_open, wx.TreeItemIcon_Expanded)
 
-        self.dir_tree.ExpandAll()
+        for root in self.roots:
+            self.dir_tree.Expand(root)
 
 
 class TagFrequencyList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):

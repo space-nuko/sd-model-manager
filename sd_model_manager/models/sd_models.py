@@ -17,7 +17,7 @@ class SDModel(Base):
 
     root_path = Column(String)
     filepath = Column(String)
-    # preview_image = Column(LargeBinary, nullable=True)
+    preview_images = Column(JSON, nullable=True)
     display_name = Column(String, nullable=True)
     author = Column(String, nullable=True)
     source = Column(String, nullable=True)
@@ -49,6 +49,7 @@ class LoRAModel(SDModel):
 
     session_id = Column(Integer, nullable=True)
     training_started_at = Column(DateTime, nullable=True)
+    training_finished_at = Column(DateTime, nullable=True)
     output_name = Column(String, nullable=True)
     learning_rate = Column(Numeric, nullable=True)
     text_encoder_lr = Column(Numeric, nullable=True)
@@ -92,14 +93,22 @@ class LoRAModel(SDModel):
     unique_tags = Column(Integer, nullable=True)
     sd_model_name = Column(String, nullable=True)
     sd_model_hash = Column(String, nullable=True)
-    sd_new_model_hash = Column(String, nullable=True)
-    sd_vae_name = Column(String, nullable=True)
-    sd_vae_hash = Column(String, nullable=True)
-    sd_new_vae_hash = Column(String, nullable=True)
+    new_sd_model_hash = Column(String, nullable=True)
     vae_name = Column(String, nullable=True)
+    vae_hash = Column(String, nullable=True)
+    new_vae_hash = Column(String, nullable=True)
     training_comment = Column(String, nullable=True)
     bucket_info = Column(JSON, nullable=True)
     sd_scripts_commit_hash = Column(String, nullable=True)
+    optimizer = Column(String, nullable=True)
+    max_grad_norm = Column(Numeric, nullable=True)
+    caption_dropout_rate = Column(Numeric, nullable=True)
+    caption_dropout_every_n_epochs = Column(Integer, nullable=True)
+    caption_tag_dropout_rate = Column(Numeric, nullable=True)
+    face_crop_aug_range = Column(String, nullable=True)
+    prior_loss_weight = Column(Numeric, nullable=True)
+    min_snr_gamma = Column(Numeric, nullable=True)
+    scale_weight_norms = Column(Numeric, nullable=True)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.filepath!r})"
@@ -112,6 +121,7 @@ class LoRAModelSchema(SQLAlchemyAutoSchema):
         include_fk = True
         load_instance = False
 
+    preview_images = fields.Raw()
     dataset_dirs = fields.Raw()
     reg_dataset_dirs = fields.Raw()
     tag_frequency = fields.Raw()
