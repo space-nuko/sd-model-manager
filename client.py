@@ -849,9 +849,9 @@ class GalleryThumbnailHandler(PILImageHandler):
     def Load(self, filename):
         try:
             with Image.open(filename) as pil:
-                pil.thumbnail((512, 512), Image.Resampling.LANCZOS)
-
                 originalsize = pil.size
+
+                pil.thumbnail((512, 512), Image.Resampling.LANCZOS)
 
                 img = wx.Image(pil.size[0], pil.size[1])
 
@@ -881,6 +881,7 @@ class ResultsGallery(wx.Panel):
         self.gallery = ScrolledThumbnail(self, -1)
         self.gallery.SetThumbSize(256, 240)
         self.gallery.SetCaptionFont(font=self.gallery_font)
+        self.gallery.EnableToolTips()
         self.gallery._tTextHeight = 32
 
         self.gallery.Bind(EVT_THUMBNAILS_SEL_CHANGED, self.OnThumbnailSelected)
@@ -901,6 +902,20 @@ class ResultsGallery(wx.Panel):
             if sel is not None:
                 selected.append(sel.GetData())
         return selected
+
+    def refresh_one_thumbnail(self, item):
+        ii = None
+        for idx in self.gallery._selectedarray:
+            sel = self.gallery.GetItem(idx)
+            if sel.GetData()["id"] == item["id"]:
+                ii = idx
+
+        if ii is None:
+            ii = next([ii for ii, t in enumerate(self.gallery._items) if t.GetData()["id"] == item["id"]], None)
+
+        if ii is not None and ii in self.gallery._cache:
+            del self.gallery._cache[ii]
+            self.gallery.Refresh()
 
     def OnThumbnailSelected(self, evt):
         selected = self.get_selection()
@@ -944,18 +959,19 @@ class ResultsGallery(wx.Panel):
 
         self.needs_update = False
         to_show = []
-        MAX_THUMBS = 250
 
         for item in filtered:
             image_path = find_image_path_for_model(item)
 
             if image_path is not None:
-                thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.splitext(os.path.basename(item["filepath"]))[0], imagehandler=GalleryThumbnailHandler, data=item)
+                thumb = Thumb(os.path.dirname(image_path),
+                              os.path.basename(image_path),
+                              caption=os.path.splitext(os.path.basename(item["filepath"]))[0],
+                              imagehandler=GalleryThumbnailHandler,
+                              lastmod=os.path.getmtime(image_path),
+                              data=item)
                 thumb.SetId(len(to_show))
                 to_show.append(thumb)
-
-            if len(to_show) >= MAX_THUMBS:
-                break
 
         self.gallery.ShowThumbs(to_show)
 
@@ -1193,6 +1209,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             progress.Update(count, f"Saving changes... ({count}/{len(self.selected_items)})")
 
             self.app.frame.results_panel.results_panel.list.refresh_one_text(item)
+            self.app.frame.results_panel.results_gallery.refresh_one_thumbnail(item)
 
         progress.Destroy()
         self.app.frame.statusbar.SetStatusText(f"Updated {updated} fields")

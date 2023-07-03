@@ -146,6 +146,7 @@ ALL_CRITERIA = [
     StringCriteria("keywords", SDModel.keywords),
     StringCriteria("description", SDModel.description),
     StringCriteria("tags", SDModel.tags),
+    StringCriteria("tag", SDModel.tags),
     StringCriteria("notes", SDModel.notes),
 
     StringCriteria("network_module", LoRAModel.network_module, exact=True),

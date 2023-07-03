@@ -178,6 +178,7 @@ import wx
 import six
 import zlib
 from math import radians
+from datetime import datetime
 
 from wx.lib.embeddedimage import PyEmbeddedImage
 
@@ -576,6 +577,7 @@ class Thumb(object):
         self._lastmod = lastmod
         self._captionbreaks = []
         self._image = wx.Image(1, 1)
+        self._originalsize = (1, 1)
         self._alpha = None
         self._imagehandler = imagehandler()
         self._bitmap = None
@@ -741,10 +743,23 @@ class Thumb(object):
         return self._lastmod
 
 
+    def GetDisplayCreationDate(self):
+        """ Returns the file last modification date associated to a thumbnail. """
+
+        return str(datetime.fromtimestamp(self.GetCreationDate()))
+
+
     def GetOriginalSize(self):
         """ Returns a tuple containing the original image width and height, in pixels. """
 
         return self._originalsize
+
+
+    def GetDisplayOriginalSize(self):
+        """ Returns a tuple containing the original image width and height, in pixels. """
+
+        s = self.GetOriginalSize()
+        return f"{s[0]}x{s[1]}"
 
 
     def GetCaptionLinesCount(self, width):
@@ -818,8 +833,8 @@ class Thumb(object):
         """ Returns info for thumbnain in display format. """
         thumbinfo = "Name: " + self.GetFileName() + "\n" \
                     "Size: " + self.GetDisplayFileSize() + "\n" \
-                    "Modified: " + self.GetCreationDate() + "\n" \
-                    "Dimensions: " + str(self.GetOriginalSize()) + "\n"
+                    "Modified: " + self.GetDisplayCreationDate() + "\n" \
+                    "Dimensions: " + self.GetDisplayOriginalSize() + "\n"
         return thumbinfo
 
 
