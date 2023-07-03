@@ -182,7 +182,7 @@ ALL_CRITERIA = [
     HasCriteria("source", SDModel.source.is_not(None)),
     HasCriteria("keywords", SDModel.keywords.is_not(None)),
     HasCriteria("negative_keywords", SDModel.negative_keywords.is_not(None)),
-    HasCriteria("description", SDModel.description.is_not(None)),
+    HasCriteria("description", and_(SDModel.description.is_not(None), SDModel.description != "")), # TODO rest
     HasCriteria("tags", SDModel.tags.is_not(None)),
     HasCriteria("rating", and_(SDModel.rating.is_not(None), SDModel.rating > 0)),
     HasCriteria("image", and_(SDModel.preview_images.is_not(None), SDModel.preview_images != [])),

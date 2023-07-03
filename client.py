@@ -4,14 +4,9 @@ import os
 import pathlib
 import subprocess
 import re
-import wx
-import wx.aui
-import wx.lib.newevent
 import ctypes
-from wx.lib.agw import ultimatelistctrl
+import io
 from dataclasses import dataclass
-import wx.lib.mixins.listctrl as listmix
-import wxasync
 import asyncio
 import aiohttp
 import aiopubsub
@@ -21,12 +16,20 @@ from aiohttp import web
 from aiopubsub import Key
 from typing import Callable, Optional
 
+import wx
+import wx.aui
+import wx.lib.newevent
+from wx.lib.agw import ultimatelistctrl
+import wx.lib.mixins.listctrl as listmix
+import wxasync
+
 from main import create_app
+from sd_model_manager.prompt import infotext
 from sd_model_manager.utils.common import get_config, find_image, try_load_image
 from sd_model_manager.utils.timer import Timer
 from gui.image_panel import ImagePanel
 from gui.rating_ctrl import RatingCtrl, EVT_RATING_CHANGED
-from gui.scrolledthumbnail import ScrolledThumbnail, Thumb, PILImageHandler, file_broken, EVT_THUMBNAILS_SEL_CHANGED, EVT_THUMBNAILS_DCLICK
+from gui.scrolledthumbnail import ScrolledThumbnail, Thumb, PILImageHandler, file_broken, EVT_THUMBNAILS_SEL_CHANGED, EVT_THUMBNAILS_DCLICK, EVT_THUMBNAILS_RCLICK
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
@@ -34,6 +37,9 @@ except:
     pass
 
 hub = aiopubsub.Hub()
+
+def trim_string(s, n=200):
+    return (s[:n] + "...") if len(s) > n else s
 
 def open_on_file(path):
     path = os.path.realpath(path)
@@ -43,6 +49,156 @@ def open_on_file(path):
         subprocess.run([explorer, '/select,', path])
     else:
         os.startfile(os.path.dirname(path))
+
+def load_bitmap(path):
+    with open(path, "rb") as f:
+        img = wx.Image(io.BytesIO(f.read()), type=wx.BITMAP_TYPE_ANY, index=-1)
+        return wx.Bitmap(img, depth=wx.BITMAP_SCREEN_DEPTH)
+
+def find_image_for_model(item):
+    image = None
+    image_path = None
+
+    image_paths = item["preview_images"]
+    if len(image_paths) > 0:
+        for path in image_paths:
+            image = try_load_image(path)
+            if image is not None:
+                image_path = path
+                break
+
+    if image is None:
+        filepath = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
+        image, image_path = find_image(filepath, load=True)
+
+    return image, image_path
+
+def combine_tag_freq(tags):
+    totals = {}
+    for folder, freqs in tags.items():
+        for tag, freq in freqs.items():
+            if tag not in totals:
+                totals[tag] = 0
+            totals[tag] += freq
+    return totals
+
+
+class PopupMenuSeparator:
+    pass
+
+class PopupMenuItem:
+    title: str
+    callback: Callable
+    enabled: bool
+    checked: Optional[bool]
+    bitmap: Optional[wx.Bitmap]
+
+    def __init__(self, title, callback, enabled=True, checked=None, icon=None):
+        self.title = title
+        self.callback = callback
+        self.enabled = enabled
+        self.checked = checked
+        self.icon = icon
+
+class PopupMenu(wx.Menu):
+    def __init__(self, *args, target=None, event=None, items=None, **kwargs):
+        wx.Menu.__init__(self, *args, **kwargs)
+        self.target = target
+        self.event = event
+        self.items = {}
+        self.order = []
+
+        for item in items:
+            id = wx.NewIdRef(count=1)
+            self.order.append(id)
+            self.items[id] = item
+
+        for id in self.order:
+            item = self.items[id]
+
+            if isinstance(item, PopupMenuSeparator):
+                self.AppendSeparator()
+            else:
+                if item.checked is not None:
+                    self.AppendCheckItem(id, item.title)
+                    self.Check(id, item.checked)
+                else:
+                    self.Append(id, item.title)
+                    if item.icon is not None:
+                        menu_item, _menu = self.FindItem(id)
+                        menu_item.SetBitmap(item.icon)
+                self.Enable(id, item.enabled)
+            self.Bind(wx.EVT_MENU, self.OnMenuSelection, id=id)
+
+    def OnMenuSelection(self, event):
+        item = self.items[event.GetId()]
+        item.callback(self.target, self.event)
+
+
+def open_folder(target, event):
+    path = os.path.join(target["root_path"], target["filepath"])
+    open_on_file(path)
+
+def copy_item_value(target, event, colmap, app):
+    col = colmap[event.GetColumn()]
+    column = COLUMNS[col]
+    value = column.callback(target)
+
+    copy_to_clipboard(value, app)
+
+def copy_top_n_tags(tag_freq, app, n=None):
+    totals = combine_tag_freq(tag_freq)
+    tags = list(totals.keys())
+    if n is not None:
+        tags = tags[:n]
+    s = ", ".join(tags)
+    copy_to_clipboard(s, app)
+
+def copy_to_clipboard(value, app=None):
+    if wx.TheClipboard.Open():
+        wx.TheClipboard.SetData(wx.TextDataObject(str(value)))
+        wx.TheClipboard.Close()
+
+        if app:
+            app.frame.statusbar.SetStatusText(f"Copied: {trim_string(value)}")
+
+def create_popup_menu_for_item(target, evt, app, colmap=None):
+    tag_freq = target.get("tag_frequency")
+
+    image_prompt = None
+    image_tags = None
+    image_neg_tags = None
+    image, image_path = find_image_for_model(target)
+    if image is not None:
+        if "parameters" in image.info:
+            image_prompt = image.info["parameters"]
+            image_tags = infotext.parse_a1111_prompt(image_prompt)
+        elif "prompt" in image.info:
+            image_prompt = image.info["prompt"]
+            image_tags = infotext.parse_comfyui_prompt(image_prompt)
+        if image_tags is not None:
+            image_neg_tags = next(iter(i for i in image_tags if i.startswith("negative:")), "negative:").lstrip("negative:")
+            image_tags = infotext.remove_metatags(image_tags)
+            image_tags = ", ".join([t for t in image_tags])
+
+    icon_copy = load_bitmap("images/icons/page_copy.png")
+    icon_folder_go = load_bitmap("images/icons/folder_go.png")
+
+    items = [
+        PopupMenuItem("Open Folder", open_folder, icon=icon_folder_go),
+        PopupMenuItem("Copy Value", lambda t, e: copy_item_value(t, e, colmap, app)) if colmap is not None else None,
+        PopupMenuSeparator(),
+        PopupMenuItem("Image Prompt", lambda t, e: copy_to_clipboard(image_prompt, app), enabled=image_prompt is not None, icon=icon_copy),
+        PopupMenuItem("Image Tags", lambda t, e: copy_to_clipboard(image_tags, app), enabled=image_tags is not None, icon=icon_copy),
+        PopupMenuItem("Image Neg. Tags", lambda t, e: copy_to_clipboard(image_neg_tags, app), enabled=image_neg_tags is not None, icon=icon_copy),
+        PopupMenuItem("Top 10 Tags", lambda t, e: copy_top_n_tags(tag_freq, app, 10), enabled=tag_freq is not None, icon=icon_copy),
+        PopupMenuItem("Top 20 Tags", lambda t, e: copy_top_n_tags(tag_freq, app, 20), enabled=tag_freq is not None, icon=icon_copy),
+        PopupMenuItem("Top 50 Tags", lambda t, e: copy_top_n_tags(tag_freq, app, 50), enabled=tag_freq is not None, icon=icon_copy),
+        PopupMenuItem("All Tags", lambda t, e: copy_top_n_tags(tag_freq, app), enabled=tag_freq is not None, icon=icon_copy),
+    ]
+    items = [i for i in items if i]
+
+    return PopupMenu(target=target, event=evt, items=items)
 
 class API:
     def __init__(self, config):
@@ -70,6 +226,7 @@ class API:
     async def update_lora(self, id, changes):
         async with self.client.patch(self.base_url() + f"/api/v1/lora/{id}", data=simplejson.dumps({"changes": changes})) as response:
             return await response.json()
+
 
 class ColumnInfo:
     name: str
@@ -336,7 +493,7 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
             wx.TheClipboard.SetData(wx.TextDataObject(str(value)))
             wx.TheClipboard.Close()
 
-            self.app.frame.statusbar.SetStatusText(f"Copied: {value}")
+            self.app.frame.statusbar.SetStatusText(f"Copied: {trim_string(value)}")
 
 class MetadataDialog(wx.Dialog):
     def __init__(self, parent, item, app=None):
@@ -380,13 +537,13 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnListItemActivated)
         self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
-        self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
+        wxasync.AsyncBind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked, self)
         self.Bind(wx.EVT_LIST_COL_RIGHT_CLICK, self.OnColumnRightClicked)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
         self.Bind(wx.EVT_RIGHT_DOWN, self.OnClick)
-
+
         self.pub = aiopubsub.Publisher(hub, Key("events"))
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
@@ -566,34 +723,19 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         dialog.ShowModal()
         dialog.Destroy()
 
-    def OnListItemRightClicked(self, evt):
+    async def OnListItemRightClicked(self, evt):
         self.ClearSelection()
         self.Select(evt.GetIndex())
+        selection = self.get_selection()
+        await self.app.frame.ForceSelect(selection)
 
         target = self.filtered[evt.GetIndex()]
 
-        menu = PopupMenu(target=target, event=evt, items=[
-            PopupMenuItem("Open Folder", self.open_folder),
-            PopupMenuItem("Copy Value", self.copy_value)
-        ])
+        menu = create_popup_menu_for_item(target, evt, self.app, colmap=self.colmap)
+
         pos = evt.GetPoint()
         self.PopupMenu(menu, pos)
         menu.Destroy()
-
-    def open_folder(self, target, event):
-        path = os.path.join(target["root_path"], target["filepath"])
-        open_on_file(path)
-
-    def copy_value(self, target, event):
-        col = self.colmap[event.GetColumn()]
-        column = COLUMNS[col]
-        value = column.callback(target)
-
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(wx.TextDataObject(str(value)))
-            wx.TheClipboard.Close()
-
-            self.app.frame.statusbar.SetStatusText(f"Copied: {value}")
 
     def OnColumnRightClicked(self, evt):
         items = []
@@ -669,6 +811,8 @@ class ResultsNotebook(wx.Panel):
         self.pub.publish(Key("item_selected"), [])
         self.results = {}
 
+        try_load_image.cache_clear()
+
         list = self.results_panel.list
         list.DeleteAllItems()
         list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
@@ -728,6 +872,7 @@ class ResultsGallery(wx.Panel):
 
         self.gallery.Bind(EVT_THUMBNAILS_SEL_CHANGED, self.OnThumbnailSelected)
         self.gallery.Bind(EVT_THUMBNAILS_DCLICK, self.OnThumbnailActivated)
+        self.gallery.Bind(EVT_THUMBNAILS_RCLICK, self.OnThumbnailRightClicked)
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
 
@@ -736,12 +881,16 @@ class ResultsGallery(wx.Panel):
 
         self.SetSizerAndFit(self.sizer)
 
-    def OnThumbnailSelected(self, evt):
+    def get_selection(self):
         selected = []
         for ii in self.gallery._selectedarray:
             sel = self.gallery.GetItem(ii)
             if sel is not None:
                 selected.append(sel.GetData())
+        return selected
+
+    def OnThumbnailSelected(self, evt):
+        selected = self.get_selection()
         list = self.app.frame.results_panel.results_panel.list
 
         list.ClearSelection()
@@ -760,6 +909,18 @@ class ResultsGallery(wx.Panel):
         dialog.ShowModal()
         dialog.Destroy()
 
+    def OnThumbnailRightClicked(self, evt):
+        selected = self.get_selection()
+        if not selected:
+            return
+
+        target = selected[0]
+        menu = create_popup_menu_for_item(target, evt, self.app)
+
+        pos = evt.GetPoint()
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+
     def SetThumbs(self, filtered):
         if not self.needs_update:
             return
@@ -773,19 +934,7 @@ class ResultsGallery(wx.Panel):
         MAX_THUMBS = 250
 
         for item in filtered:
-            image = None
-            image_path = None
-            image_paths = item["preview_images"]
-            if len(image_paths) > 0:
-                for path in image_paths:
-                    image = try_load_image(path)
-                    if image is not None:
-                        image_path = path
-                        break
-
-            if image_path is None:
-                path = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
-                image, image_path = find_image(path, load=True)
+            image, image_path = find_image_for_model(item)
 
             if image is not None:
                 thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.splitext(os.path.basename(item["filepath"]))[0], imagehandler=GalleryThumbnailHandler, data=item)
@@ -812,42 +961,6 @@ class ResultsPanel(wx.Panel):
         self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
-
-class PopupMenuItem:
-    title: str
-    callback: Callable
-    checked: Optional[bool]
-
-    def __init__(self, title, callback, checked=None):
-        self.title = title
-        self.callback = callback
-        self.checked = checked
-
-class PopupMenu(wx.Menu):
-    def __init__(self, *args, target=None, event=None, items=None, **kwargs):
-        wx.Menu.__init__(self, *args, **kwargs)
-        self.target = target
-        self.event = event
-        self.items = {}
-        self.order = []
-
-        for item in items:
-            id = wx.NewIdRef(count=1)
-            self.order.append(id)
-            self.items[id] = item
-
-        for id in self.order:
-            item = self.items[id]
-            if item.checked is not None:
-                self.AppendCheckItem(id, item.title)
-                self.Check(id, item.checked)
-            else:
-                self.Append(id, item.title)
-            self.Bind(wx.EVT_MENU, self.OnMenuSelection, id=id)
-
-    def OnMenuSelection(self, event):
-        item = self.items[event.GetId()]
-        item.callback(self.target, self.event)
 
 class MetadataTagsList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent):
@@ -888,16 +1001,7 @@ class PreviewImagePanel(wx.Panel):
     async def SubItemSelected(self, key, items):
         image = None
         if len(items) == 1:
-            image_paths = items[0]["preview_images"]
-            if len(image_paths) > 0:
-                for path in image_paths:
-                    image = try_load_image(path)
-                    if image is not None:
-                        break
-
-            if image is None:
-                filepath = os.path.normpath(os.path.join(items[0]["root_path"], items[0]["filepath"]))
-                image, _ = find_image(filepath, load=True)
+            image, path = find_image_for_model(items[0])
 
         if image:
             width, height = image.size
@@ -934,8 +1038,8 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ("tags", "Tags", None, None),
             ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
             ("negative_keywords", "Negative Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
-            ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140))),
-            ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140)))
+            ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 300))),
+            ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 300)))
         ]
 
         for key, label, style, size in ctrls:
@@ -1304,12 +1408,7 @@ class TagFrequencyList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
             self.tags["_"] = {}
             self.tags["_"]["(Tag frequency not saved)"] = 0
 
-        self.totals = {}
-        for folder, freqs in self.tags.items():
-            for tag, freq in freqs.items():
-                if tag not in self.totals:
-                    self.totals[tag] = 0
-                self.totals[tag] += freq
+        self.totals = combine_tag_freq(self.tags)
 
         if len(self.totals) == 0:
             self.totals["(No tags)"] = 0
@@ -1441,6 +1540,12 @@ class MainWindow(wx.Frame):
         self.SetAcceleratorTable(self.accel_tbl)
 
         self.Show()
+
+    async def ForceSelect(self, selection):
+        await self.SubItemSelected(None, selection)
+        await self.properties_panel.SubItemSelected(None, selection)
+        await self.tag_freq_panel.SubItemSelected(None, selection)
+        await self.image_panel.SubItemSelected(None, selection)
 
     async def OnSave(self, evt):
         await self.properties_panel.commit_changes()

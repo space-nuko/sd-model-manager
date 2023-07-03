@@ -186,6 +186,22 @@ if six.PY3:
 else:
     import thread
 
+
+ICON_SIZE = 24
+
+
+def load_image(filepath, half=False):
+    import PIL
+
+    image = PIL.Image.open(filepath)
+    image.load()
+    image.thumbnail((ICON_SIZE, ICON_SIZE), PIL.Image.Resampling.LANCZOS)
+    if half:
+        image = image.crop((0, 0, image.size[0] // 2, image.size[1]))
+    width, height = image.size
+    return wx.Bitmap.FromBufferRGBA(width, height, image.tobytes())
+
+
 #----------------------------------------------------------------------
 # Get Default Icon/Data
 #----------------------------------------------------------------------
@@ -360,6 +376,7 @@ THUMB_OUTLINE_IMAGE = 4
 wxEVT_THUMBNAILS_SEL_CHANGED = wx.NewEventType()
 wxEVT_THUMBNAILS_POINTED = wx.NewEventType()
 wxEVT_THUMBNAILS_DCLICK = wx.NewEventType()
+wxEVT_THUMBNAILS_RCLICK = wx.NewEventType()
 wxEVT_THUMBNAILS_CAPTION_CHANGED = wx.NewEventType()
 wxEVT_THUMBNAILS_THUMB_CHANGED = wx.NewEventType()
 wxEVT_THUMBNAILS_CHAR = wx.NewEventType()
@@ -373,6 +390,7 @@ EVT_THUMBNAILS_SEL_CHANGED = wx.PyEventBinder(wxEVT_THUMBNAILS_SEL_CHANGED, 1)
 EVT_THUMBNAILS_POINTED = wx.PyEventBinder(wxEVT_THUMBNAILS_POINTED, 1)
 """ The mouse cursor is hovering over a thumbnail. """
 EVT_THUMBNAILS_DCLICK = wx.PyEventBinder(wxEVT_THUMBNAILS_DCLICK, 1)
+EVT_THUMBNAILS_RCLICK = wx.PyEventBinder(wxEVT_THUMBNAILS_RCLICK, 1)
 """ The user has double-clicked on a thumbnail. """
 EVT_THUMBNAILS_THUMB_CHANGED = wx.PyEventBinder(wxEVT_THUMBNAILS_THUMB_CHANGED, 1)
 """ The thumbnail of an image has changed. Used internally"""
@@ -896,6 +914,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._enabletooltip = False
 
         self._parent = parent
+
+        self.bitmap_star_off = load_image("images/star_off.png")
+        self.bitmap_star_on = load_image("images/star_on.png")
+        self.bitmap_star_on_half = load_image("images/star_on.png", True)
 
         self._selectioncolour = "#009EFF"
         self.grayPen = wx.Pen("#A2A2D2", 1, wx.SHORT_DASH)
@@ -1584,6 +1606,24 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         return caption[:-3] + "..."
 
 
+    def DrawRating(self, dc, img, imgRect, rating):
+        w = (1 * 2) + ICON_SIZE
+
+        dc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 128), wx.BRUSHSTYLE_SOLID))
+        dc.DrawRectangle(imgRect.left, imgRect.bottom - ICON_SIZE - 3, imgRect.width, ICON_SIZE + 4)
+
+        for x in range(5):
+            ix = 3 + (w * x) + imgRect.x
+            iy = imgRect.bottom - ICON_SIZE - 3
+            is_off = x >= rating / 2
+            bitmap = self.bitmap_star_off if is_off else self.bitmap_star_on
+            if not is_off and rating % 2 == 1 and x == int(rating / 2):
+                dc.DrawBitmap(self.bitmap_star_off, ix, iy, True)
+                dc.DrawBitmap(self.bitmap_star_on_half, ix, iy, True)
+            else:
+                dc.DrawBitmap(bitmap, ix, iy, True)
+
+
     def DrawThumbnail(self, bmp, thumb, index):
         """
         Draws a visible thumbnail.
@@ -1595,6 +1635,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         dc = wx.MemoryDC()
         dc.SelectObject(bmp)
+        dc = wx.GCDC(dc)
 
         x = self._tBorder/2
         y = self._tBorder/2
@@ -1620,6 +1661,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         if not thumb._alpha and self._dropShadow:
             dc.Blit(imgRect.x+5, imgRect.y+5, imgRect.width, imgRect.height, self.shadow, 500-ww, 500-hh)
         dc.DrawBitmap(img, imgRect.x, imgRect.y, True)
+
+        rating = None
+        data = thumb.GetData()
+        if data:
+            rating = data.get("rating")
+        if rating:
+            self.DrawRating(dc, img, imgRect, rating)
 
         colour = self.GetSelectionColour()
         selected = self.IsSelected(index)
@@ -1703,7 +1751,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                                  imgRect.width + 2, imgRect.height + 2)
 
 
-        dc.SelectObject(wx.NullBitmap)
+        # dc.SelectObject(wx.NullBitmap)
 
 
     def OnPaint(self, event):
@@ -1910,6 +1958,9 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 self.PopupMenu(self._gpmenu)
             elif self._selected == -1 and self._gpmenu:
                 self.PopupMenu(self._gpmenu)
+            else:
+                eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_RCLICK, self.GetId(), point=event.GetPosition())
+                self.GetEventHandler().ProcessEvent(eventOut)
 
         if event.ShiftDown():
             self._selected = lastselected
@@ -2156,7 +2207,7 @@ class ThumbnailEvent(wx.PyCommandEvent):
     This class is used to send events when a thumbnail is hovered, selected,
     double-clicked or when its caption has been changed.
     """
-    def __init__(self, evtType, evtId=-1, thumbs=None, keycode=None):
+    def __init__(self, evtType, evtId=-1, thumbs=None, keycode=None, point=None):
         """
         Default class constructor.
 
@@ -2167,3 +2218,7 @@ class ThumbnailEvent(wx.PyCommandEvent):
         wx.PyCommandEvent.__init__(self, evtType, evtId)
         self.thumbs = thumbs
         self.keycode = keycode
+        self.point = point
+
+    def GetPoint(self):
+        return self.point

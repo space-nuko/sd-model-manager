@@ -27,9 +27,9 @@ class RatingCtrl(wx.ScrolledCanvas):
         self.style = style
         self.multiple = False
 
-        self.bitmap_star_off = load_image("star_off.png")
-        self.bitmap_star_on = load_image("star_on.png")
-        self.bitmap_star_on_half = load_image("star_on.png", True)
+        self.bitmap_star_off = load_image("images/star_off.png")
+        self.bitmap_star_on = load_image("images/star_on.png")
+        self.bitmap_star_on_half = load_image("images/star_on.png", True)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnClick)

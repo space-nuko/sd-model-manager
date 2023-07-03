@@ -1,6 +1,7 @@
 import argparse
 import os
 import pathlib
+import functools
 from PIL import Image
 from typing import Any, Optional, List
 
@@ -37,6 +38,7 @@ def is_image_path(path):
     return ext in IMAGE_EXTS and os.path.isfile(path)
 
 
+@functools.lru_cache
 def try_load_image(file):
     if not os.path.isfile(file):
         return None
