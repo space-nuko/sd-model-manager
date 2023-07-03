@@ -15,7 +15,7 @@ from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
 from sd_model_manager.utils.common import PATH, find_image
 from sd_model_manager.utils import safetensors_hack
-from sd_model_manager.models.sd_models import Base, LoRAModel
+from sd_model_manager.models.sd_models import Base, SDModel, LoRAModel
 
 
 DATABASE_NAME = os.getenv("DATABASE_NAME", "model_database")
@@ -136,7 +136,7 @@ class DB:
         self.Session = None
         pass
 
-    async def init(self):
+    async def init(self, model_paths):
         path = os.path.join(PATH, DATABASE_NAME)
         self.engine = create_async_engine(f"sqlite+aiosqlite:///{DATABASE_NAME}.db")
 
@@ -144,6 +144,14 @@ class DB:
             await conn.run_sync(Base.metadata.create_all)
 
         self.AsyncSession = async_sessionmaker(bind=self.engine)
+
+        async with self.AsyncSession() as session:
+            stmt = select(func.count()).select_from(SDModel)
+            count = (await session.execute(stmt)).scalar()
+
+        if count == 0:
+            print("Database was newly created, running initial scan.")
+            await self.scan(model_paths)
 
 
     async def scan(self, paths):
@@ -183,6 +191,8 @@ class DB:
                         author=metadata.get("ssmd_author", None),
                         source=metadata.get("ssmd_source", None),
                         keywords=metadata.get("ssmd_keywords", None),
+                        negative_keywords=metadata.get("ssmd_negative_keywords", None),
+                        version=metadata.get("ssmd_version", None),
                         description=metadata.get("ssmd_description", None),
                         rating=to_int(metadata.get("ssmd_rating", None)),
                         tags=metadata.get("ssmd_tags", None),

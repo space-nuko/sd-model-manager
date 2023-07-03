@@ -38,8 +38,8 @@ class RatingCtrl(wx.ScrolledCanvas):
     def GetValue(self):
         return "< keep >" if self.multiple else self.rating
 
-    def SetMultiple(self):
-        self.rating = 0
+    def SetMultiple(self, rating=0):
+        self.rating = rating
         self.multiple = True
         self.Refresh()
 

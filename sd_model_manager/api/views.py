@@ -81,10 +81,12 @@ async def update(request):
 
         fields = [
             "display_name",
+            "version",
             "author",
             "source",
             "tags",
             "keywords",
+            "negative_keywords",
             "description",
             "notes",
             "rating",

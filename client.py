@@ -26,6 +26,7 @@ from sd_model_manager.utils.common import get_config, find_image, try_load_image
 from sd_model_manager.utils.timer import Timer
 from gui.image_panel import ImagePanel
 from gui.rating_ctrl import RatingCtrl, EVT_RATING_CHANGED
+from gui.scrolledthumbnail import ScrolledThumbnail, Thumb, PILImageHandler, file_broken, EVT_THUMBNAILS_SEL_CHANGED, EVT_THUMBNAILS_DCLICK
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(True)
@@ -309,11 +310,14 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
     def OnGetItemColumnKind(self, item, col):
         return 0
 
-    def OnListItemRightClicked(self, evt):
+    def ClearSelection(self):
         i = self.GetFirstSelected()
         while i != -1:
             self.Select(i, 0)
             i = self.GetNextSelected(i)
+
+    def OnListItemRightClicked(self, evt):
+        self.ClearSelection()
         self.Select(evt.GetIndex())
 
         target = self.fields[evt.GetIndex()]
@@ -395,6 +399,12 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
     async def SubTreeFilterChanged(self, key, path):
         self.pub.publish(Key("item_selected"), [])
+
+    def ClearSelection(self):
+        i = self.GetFirstSelected()
+        while i != -1:
+            self.Select(i, 0)
+            i = self.GetNextSelected(i)
 
     def OnKeyUp(self, evt):
         self.clicked = True
@@ -557,10 +567,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         dialog.Destroy()
 
     def OnListItemRightClicked(self, evt):
-        i = self.GetFirstSelected()
-        while i != -1:
-            self.Select(i, 0)
-            i = self.GetNextSelected(i)
+        self.ClearSelection()
         self.Select(evt.GetIndex())
 
         target = self.filtered[evt.GetIndex()]
@@ -602,62 +609,208 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         menu.Destroy()
         pass
 
-class ResultsPanel(wx.Panel):
-    def __init__(self, *args, app=None, **kwargs):
+class ResultsNotebook(wx.Panel):
+    def __init__(self, parent, app=None):
         self.app = app
-        self.results = []
 
-        wx.Panel.__init__(self, *args, **kwargs)
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY)
 
-        self.list = ResultsListCtrl(self, app)
+        self.results = {}
+        self.notebook = wx.Notebook(self)
+        self.thumbs_need_update = False
 
-        self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
-        self.button = wx.Button(self, label="Search")
+        self.results_panel = ResultsPanel(self.notebook, app=self.app)
+        self.results_gallery = ResultsGallery(self.notebook, app=self.app)
+
+        self.notebook.AddPage(self.results_panel, "List")
+        self.notebook.AddPage(self.results_gallery, "Gallery")
 
         self.pub = aiopubsub.Publisher(hub, Key("events"))
         self.sub = aiopubsub.Subscriber(hub, Key("events"))
         self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
 
+        self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
+        self.button = wx.Button(self, label="Search")
+
         wxasync.AsyncBind(wx.EVT_BUTTON, self.OnSearch, self.button)
         wxasync.AsyncBind(wx.EVT_TEXT_ENTER, self.OnSearch, self.search_box)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
 
         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer2.Add(self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5)
         self.sizer2.Add(self.button, proportion=1, flag=wx.ALL, border=5)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
         self.sizer.Add(self.sizer2, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
 
-    async def SubTreeFilterChanged(self, key, path):
-        self.list.filter = path
-        self.list.refresh_filter()
+    def OnPageChanged(self, evt):
+        sel = evt.GetSelection()
+        if sel == 1: # gallery page
+            self.results_gallery.SetThumbs(self.results_panel.list.filtered)
 
-        if len(self.list.filtered) > 0:
-            self.list.Select(0, 1)
-            self.list.Focus(0)
+    async def SubTreeFilterChanged(self, key, path):
+        list = self.results_panel.list
+        list.filter = path
+        list.refresh_filter()
+
+        if len(list.filtered) > 0:
+            list.Select(0, 1)
+            list.Focus(0)
             self.pub.publish(Key("item_selected"), self.list.get_selection())
+
+        self.results_gallery.needs_update = True
+        if self.notebook.GetSelection() == 1:
+            self.results_gallery.SetThumbs(list.filtered)
 
     async def search(self, query):
         self.pub.publish(Key("item_selected"), [])
+        self.results = {}
 
-        self.list.DeleteAllItems()
-        self.list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
+        list = self.results_panel.list
+        list.DeleteAllItems()
+        list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
 
-        results = await self.app.api.get_loras(query)
-        self.list.set_results(results)
+        self.results = await self.app.api.get_loras(query)
+        list.set_results(self.results)
 
-        self.sizer.Layout()
+        if len(list.filtered) > 0:
+            list.Select(0, 1)
+            list.Focus(0)
+            self.pub.publish(Key("item_selected"), list.get_selection())
 
-        if len(self.list.filtered) > 0:
-            self.list.Select(0, 1)
-            self.list.Focus(0)
-            self.pub.publish(Key("item_selected"), self.list.get_selection())
+        self.results_gallery.needs_update = True
+        if self.notebook.GetSelection() == 1:
+            self.results_gallery.SetThumbs(list.filtered)
 
     async def OnSearch(self, evt):
         await self.app.frame.search(self.search_box.GetValue())
+
+class GalleryThumbnailHandler(PILImageHandler):
+    def Load(self, filename):
+        try:
+            with Image.open(filename) as pil:
+                pil.thumbnail((512, 512), Image.Resampling.LANCZOS)
+
+                originalsize = pil.size
+
+                img = wx.Image(pil.size[0], pil.size[1])
+
+                img.SetData(pil.convert("RGB").tobytes())
+
+                alpha = False
+                if "A" in pil.getbands():
+                    img.SetAlpha(pil.convert("RGBA").tobytes()[3::4])
+                    alpha = True
+        except:
+            img = file_broken.GetImage()
+            originalsize = (img.GetWidth(), img.GetHeight())
+            alpha = False
+
+        return img, originalsize, alpha
+
+class ResultsGallery(wx.Panel):
+    def __init__(self, parent, app=None, **kwargs):
+        self.app = app
+        self.thumbs = []
+        self.needs_update = True
+
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, **kwargs)
+
+        self.gallery_font = wx.Font(16, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
+
+        self.gallery = ScrolledThumbnail(self, -1)
+        self.gallery.SetThumbSize(256, 240)
+        self.gallery.SetCaptionFont(font=self.gallery_font)
+        self.gallery._tTextHeight = 32
+
+        self.gallery.Bind(EVT_THUMBNAILS_SEL_CHANGED, self.OnThumbnailSelected)
+        self.gallery.Bind(EVT_THUMBNAILS_DCLICK, self.OnThumbnailActivated)
+
+        self.pub = aiopubsub.Publisher(hub, Key("events"))
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.gallery, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.SetSizerAndFit(self.sizer)
+
+    def OnThumbnailSelected(self, evt):
+        selected = []
+        for ii in self.gallery._selectedarray:
+            sel = self.gallery.GetItem(ii)
+            if sel is not None:
+                selected.append(sel.GetData())
+        list = self.app.frame.results_panel.results_panel.list
+
+        list.ClearSelection()
+        for item in selected:
+            list.Select(item["_index"], 1)
+        # list.Focus(item["_index"])
+        self.pub.publish(Key("item_selected"), list.get_selection())
+
+    def OnThumbnailActivated(self, evt):
+        selected = self.gallery.GetSelectedItem()
+        if selected is None:
+            return
+        item = selected.GetData()
+        dialog = MetadataDialog(self, item, app=self.app)
+        dialog.CenterOnParent(wx.BOTH)
+        dialog.ShowModal()
+        dialog.Destroy()
+
+    def SetThumbs(self, filtered):
+        if not self.needs_update:
+            return
+
+        self.app.frame.statusbar.SetStatusText("Refreshing thumbnails...")
+        self.gallery.Clear()
+        self.gallery.Refresh()
+
+        self.needs_update = False
+        to_show = []
+
+        for item in filtered:
+            image = None
+            image_path = None
+            image_paths = item["preview_images"]
+            if len(image_paths) > 0:
+                for path in image_paths:
+                    image = try_load_image(path)
+                    if image is not None:
+                        image_path = path
+                        break
+
+            if image_path is None:
+                path = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
+                image, image_path = find_image(path, load=True)
+
+            if image is not None:
+                thumb = Thumb(os.path.dirname(image_path), os.path.basename(image_path), caption=os.path.basename(item["filepath"]), imagehandler=GalleryThumbnailHandler, data=item)
+                thumb.SetId(len(to_show))
+                to_show.append(thumb)
+
+            if len(to_show) > 250:
+                break
+
+        self.gallery.ShowThumbs(to_show)
+
+        self.app.frame.statusbar.SetStatusText(f"Done. ({len(to_show)} entries)")
+
+class ResultsPanel(wx.Panel):
+    def __init__(self, parent, app=None, **kwargs):
+        self.app = app
+        self.results = []
+
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY, **kwargs)
+
+        self.list = ResultsListCtrl(self, app)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.SetSizerAndFit(self.sizer)
 
 class PopupMenuItem:
     title: str
@@ -774,10 +927,12 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         ctrls = [
             ("display_name", "Name", None, None),
+            ("version", "Version", None, None),
             ("author", "Author", None, None),
             ("source", "Source", None, None),
             ("tags", "Tags", None, None),
             ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 60))),
+            ("negative_keywords", "Negative Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 60))),
             ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140))),
             ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 140)))
         ]
@@ -845,9 +1000,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
         # self.sizer.Add(wx.StaticText(self, label="Tags"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         # self.sizer.Add(self.list_tags, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
-        sizer = wx.WrapSizer()
-        sizer.Add(self.sizer)
-        self.SetSizerAndFit(sizer)
+        self.SetSizerAndFit(self.sizer)
         self.SetupScrolling(scroll_x=False)
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
@@ -908,7 +1061,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         count = 0
         updated = 0
-        progress = wx.ProgressDialog("Saving", "Saving changes...", parent=self.app.frame,
+        progress = wx.ProgressDialog("Saving", f"Saving changes... ({0}/{len(self.selected_items)})", parent=self.app.frame,
                                      maximum=len(self.selected_items), style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
 
         for item in self.selected_items:
@@ -917,7 +1070,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             updated += result['fields_updated']
             progress.Update(count, f"Saving changes... ({count}/{len(self.selected_items)})")
 
-            self.app.frame.results_panel.list.refresh_one_text(item)
+            self.app.frame.results_panel.results_panel.list.refresh_one_text(item)
 
         progress.Destroy()
         self.app.frame.statusbar.SetStatusText(f"Updated {updated} fields")
@@ -1002,7 +1155,15 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 filename = "< multiple >"
                 id = "< multiple >"
                 tags = ["< multiple >"]
-                self.ctrl_rating.SetMultiple()
+                rating = None
+                for item in items:
+                    nrating = item.get("rating") or 0
+                    if rating is None:
+                        rating = nrating
+                        self.ctrl_rating.ChangeValue(rating)
+                    elif rating != nrating:
+                        self.ctrl_rating.SetMultiple()
+                        break
             self.text_filename.ChangeValue(filename)
             self.text_id.ChangeValue(id)
             # self.list_tags.set_tags(tags)
@@ -1246,14 +1407,14 @@ class MainWindow(wx.Frame):
         #                      DockFixed(True).Floatable(False).
         #                      LeftDockable(False).RightDockable(False))
 
-        self.results_panel = ResultsPanel(self, app=self.app)
+        self.results_panel = ResultsNotebook(self, app=self.app)
         self.aui_mgr.AddPane(self.results_panel, wx.aui.AuiPaneInfo().Caption("Search Results").Center().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))))
 
         self.file_panel = FilePanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.file_panel, wx.aui.AuiPaneInfo().Caption("Files").Top().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(250, 250))))
+        self.aui_mgr.AddPane(self.file_panel, wx.aui.AuiPaneInfo().Caption("Files").Top().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))).BestSize(self.FromDIP(wx.Size(400, 400))))
 
         self.tag_freq_panel = TagFrequencyPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.tag_freq_panel, wx.aui.AuiPaneInfo().Caption("Tag Frequency").Bottom().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(250, 250))))
+        self.aui_mgr.AddPane(self.tag_freq_panel, wx.aui.AuiPaneInfo().Caption("Tag Frequency").Bottom().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))).BestSize(self.FromDIP(wx.Size(400, 400))))
 
         self.properties_panel = PropertiesPanel(self, app=self.app)
         self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Caption("Properties").Top().Left().CloseButton(False).MinSize(self.FromDIP(wx.Size(325, 325))))
@@ -1288,7 +1449,7 @@ class MainWindow(wx.Frame):
 
         await self.results_panel.search(query)
 
-        results = self.results_panel.list.results
+        results = self.results_panel.results
 
         self.pub.publish(Key("search_finished"), results)
 

@@ -23,6 +23,8 @@ class SDModel(Base):
     author = Column(String, nullable=True)
     source = Column(String, nullable=True)
     keywords = Column(String, nullable=True)
+    negative_keywords = Column(String, nullable=True)
+    version = Column(String, nullable=True)
     description = Column(String, nullable=True)
     rating = Column(Integer, nullable=True)
     tags = Column(String, nullable=True)
