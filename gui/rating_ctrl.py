@@ -82,8 +82,6 @@ class RatingCtrl(wx.ScrolledCanvas):
                 self.rating = 0
             else:
                 self.rating = int(min(10, (max(0, (event.GetX() - 3) * 2) / w + 1)))
-        if rating == self.rating:
-            self.rating = 0
         if rating != self.rating:
             self.multiple = False
             self.Refresh()

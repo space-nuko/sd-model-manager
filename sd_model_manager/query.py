@@ -65,13 +65,14 @@ class NumberCriteria(AbstractCriteria):
         return orm_query.where(stmt)
 
 class HasCriteria(AbstractCriteria):
-    def __init__(self, suffix, stmt):
+    def __init__(self, suffix, column, compare=""):
         self.re = re.compile(rf'(^| +)(-)?has:{suffix}', re.I)
-        self.stmt = stmt
+        self.column = column
+        self.compare = ""
 
     def do_apply(self, orm_query, matches):
         no = matches[2] is not None
-        stmt = self.stmt
+        stmt = and_(self.column.is_not(None), self.column != self.compare)
         if no:
             stmt = not_(stmt)
         return orm_query.where(stmt)
@@ -177,24 +178,24 @@ ALL_CRITERIA = [
     NumberCriteria("unet_lr", LoRAModel.unet_lr, float),
     NumberCriteria("noise_offset", LoRAModel.noise_offset, float),
 
-    HasCriteria("name", SDModel.display_name.is_not(None)),
-    HasCriteria("version", SDModel.version.is_not(None)),
-    HasCriteria("author", SDModel.author.is_not(None)),
-    HasCriteria("source", SDModel.source.is_not(None)),
-    HasCriteria("keywords", SDModel.keywords.is_not(None)),
-    HasCriteria("negative_keywords", SDModel.negative_keywords.is_not(None)),
-    HasCriteria("description", and_(SDModel.description.is_not(None), SDModel.description != "")), # TODO rest
-    HasCriteria("tags", SDModel.tags.is_not(None)),
-    HasCriteria("rating", and_(SDModel.rating.is_not(None), SDModel.rating > 0)),
-    HasCriteria("image", and_(SDModel.preview_images.is_not(None), SDModel.preview_images != [])),
-    HasCriteria("preview_image", and_(SDModel.preview_images.is_not(None), SDModel.preview_images != [])),
+    HasCriteria("name", SDModel.display_name),
+    HasCriteria("version", SDModel.version),
+    HasCriteria("author", SDModel.author),
+    HasCriteria("source", SDModel.source),
+    HasCriteria("keywords", SDModel.keywords),
+    HasCriteria("negative_keywords", SDModel.negative_keywords),
+    HasCriteria("description", SDModel.description),
+    HasCriteria("tags", SDModel.tags),
+    HasCriteria("rating", SDModel.rating, 0),
+    HasCriteria("image", SDModel.preview_images, []),
+    HasCriteria("preview_image", SDModel.preview_images, []),
 
-    HasCriteria("tag_frequency", and_(LoRAModel.unique_tags.is_not(None), LoRAModel.unique_tags > 0)),
-    HasCriteria("dataset_dirs", LoRAModel.dataset_dirs.is_not(None)),
-    HasCriteria("reg_dataset_dirs", LoRAModel.reg_dataset_dirs.is_not(None)),
-    HasCriteria("network_args", LoRAModel.network_args.is_not(None)),
-    HasCriteria("noise_offset", and_(LoRAModel.noise_offset.is_not(None), LoRAModel.noise_offset > 0)),
-    HasCriteria("keep_tokens", and_(LoRAModel.keep_tokens.is_not(None), LoRAModel.keep_tokens > 0)),
+    HasCriteria("tag_frequency", LoRAModel.unique_tags),
+    HasCriteria("dataset_dirs", LoRAModel.dataset_dirs),
+    HasCriteria("reg_dataset_dirs", LoRAModel.reg_dataset_dirs),
+    HasCriteria("network_args", LoRAModel.network_args),
+    HasCriteria("noise_offset", LoRAModel.noise_offset, 0),
+    HasCriteria("keep_tokens", LoRAModel.keep_tokens.is_not(None), 0),
 
     BasicCriteria(),
 ]

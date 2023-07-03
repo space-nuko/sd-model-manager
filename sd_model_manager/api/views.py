@@ -1,7 +1,7 @@
 import sys
 from aiohttp import web
 from sqlalchemy import create_engine, select, or_
-from sqlalchemy.orm import Session, selectin_polymorphic
+from sqlalchemy.orm import Session, selectinload, selectin_polymorphic
 from sqlakeyset.asyncio import select_page
 import simplejson
 
@@ -28,7 +28,8 @@ async def index(request):
         query = select(LoRAModel)
         if search_query:
             query = build_search_query(query, search_query)
-        query = query.options(selectin_polymorphic(SDModel, [LoRAModel]))
+        query = query.options(selectin_polymorphic(SDModel, [LoRAModel])) \
+                     .options(selectinload(SDModel.preview_images))
 
         page = await select_page(s, query, per_page=limit, page=page_marker)
 

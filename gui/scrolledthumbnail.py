@@ -915,6 +915,8 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._checktext = False
         self._dropShadow = True
         self._cache = {}
+        self._id_to_idx = {}
+        self._idx_to_id = {}
 
         self._tCaptionHeight = []
         self._selectedarray = []
@@ -1290,10 +1292,19 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         from sd_model_manager.utils.timer import Timer
         self._isrunning = False
         self._cache = {}
+        self._id_to_idx = {}
+        self._idx_to_id = {}
 
         # update items
         self._items = thumbs
         myfiles = [thumb.GetFullFileName() for thumb in thumbs]
+
+        for ii, thumb in enumerate(self._items):
+            data = thumb.GetData()
+            if data is not None and "id" in data:
+                id = data["id"]
+                self._id_to_idx[id] = ii
+                self._idx_to_id[ii] = id
 
         self._isrunning = True
 
@@ -1625,6 +1636,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
     def DrawRating(self, dc, img, imgRect, rating):
         w = (1 * 2) + ICON_SIZE
 
+        clip = wx.DCClipper(dc, imgRect)
         dc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 128), wx.BRUSHSTYLE_SOLID))
         dc.DrawRectangle(imgRect.left, imgRect.bottom - ICON_SIZE - 3, imgRect.width, ICON_SIZE + 4)
 

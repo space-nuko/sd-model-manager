@@ -62,9 +62,9 @@ def find_image_for_model(item):
     image_paths = item["preview_images"]
     if len(image_paths) > 0:
         for path in image_paths:
-            image = try_load_image(path)
+            image = try_load_image(path["filepath"])
             if image is not None:
-                image_path = path
+                image_path = path["filepath"]
                 break
 
     if image is None:
@@ -79,8 +79,8 @@ def find_image_path_for_model(item):
     image_paths = item["preview_images"]
     if len(image_paths) > 0:
         for path in image_paths:
-            if os.path.isfile(path):
-                return path
+            if os.path.isfile(path["filepath"]):
+                return path["filepath"]
 
     filepath = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
     _, image_path = find_image(filepath, load=False)
@@ -640,14 +640,14 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.DeleteAllItems()
         self.Refresh()
 
+        count = len(self.filtered)
+        self.SetItemCount(count)
+
         self.text = {}
         self.values = {}
         for i, data in enumerate(self.filtered):
             data["_index"] = i
             self.refresh_one_text(data)
-
-        count = len(self.filtered)
-        self.SetItemCount(count)
 
         self.app.frame.statusbar.SetStatusText(f"Done. ({count} records)")
 
@@ -666,6 +666,14 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
                 self.values[col] = {}
             self.text[col][i] = text
             self.values[col][i] = value
+
+        filepath = os.path.normpath(os.path.join(data["root_path"], data["filepath"]))
+        data["file_exists"] = os.path.isfile(filepath)
+        if data["file_exists"]:
+            colour = "white"
+        else:
+            colour = "red"
+        self.SetItemBackgroundColour(i, colour)
 
     def get_selection(self):
         item = self.GetFirstSelected()
@@ -904,18 +912,11 @@ class ResultsGallery(wx.Panel):
         return selected
 
     def refresh_one_thumbnail(self, item):
-        ii = None
-        for idx in self.gallery._selectedarray:
-            sel = self.gallery.GetItem(idx)
-            if sel.GetData()["id"] == item["id"]:
-                ii = idx
-
-        if ii is None:
-            ii = next([ii for ii, t in enumerate(self.gallery._items) if t.GetData()["id"] == item["id"]], None)
-
+        ii = self.gallery._id_to_idx.get(item["id"])
         if ii is not None and ii in self.gallery._cache:
             del self.gallery._cache[ii]
-            self.gallery.Refresh()
+        else:
+            self.gallery._cache = {}
 
     def OnThumbnailSelected(self, evt):
         selected = self.get_selection()
