@@ -10,8 +10,12 @@ Can be used standalone with the included frontend, embedded into ComfyUI for use
 
 First install the requirements:
 
-```
-pip install -r requirements.txt
+```bash
+# Required
+pip install -r requirements/development.txt
+
+# Optional, if developing
+pip install -r requirements/gui.txt
 ```
 
 Next edit `config.yml` to contain your model paths:
@@ -19,7 +23,8 @@ Next edit `config.yml` to contain your model paths:
 ``` yaml
 listen: 0.0.0.0
 port: 7779
-model-paths: ["C:/path/to/loras"]
+model-paths: 
+  - "C:/path/to/loras"
 ```
 
 Then the built-in GUI can be run as follows:

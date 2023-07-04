@@ -1,6 +1,9 @@
+import os
 import wx
 import wx.lib.scrolledpanel as scrolled
 from PIL import Image
+
+from gui.utils import PROGRAM_ROOT
 
 
 RatingChangedEvent, EVT_RATING_CHANGED = wx.lib.newevent.NewCommandEvent()
@@ -10,7 +13,7 @@ ICON_SIZE = 32
 
 
 def load_image(filepath, half=False):
-    image = Image.open(filepath)
+    image = Image.open(os.path.join(PROGRAM_ROOT, filepath))
     image.load()
     image.thumbnail((ICON_SIZE, ICON_SIZE), Image.Resampling.LANCZOS)
     if half:

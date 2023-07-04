@@ -140,7 +140,7 @@ class DB:
 
     async def init(self, model_paths):
         path = os.path.join(PATH, DATABASE_NAME)
-        self.engine = create_async_engine(f"sqlite+aiosqlite:///{DATABASE_NAME}.db")
+        self.engine = create_async_engine(f"sqlite+aiosqlite:///{path}.db")
 
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -150,6 +150,8 @@ class DB:
         async with self.AsyncSession() as session:
             stmt = select(func.count()).select_from(SDModel)
             count = (await session.execute(stmt)).scalar()
+
+        print(f"Database is at {path}.db.")
 
         if count == 0:
             print("Database was newly created, running initial scan.")

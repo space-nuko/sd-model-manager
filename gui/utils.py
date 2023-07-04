@@ -14,7 +14,9 @@ import wx.lib.newevent
 from sd_model_manager.utils.common import find_image, try_load_image
 
 
-PROGRAM_ROOT = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
+PROGRAM_ROOT = os.path.dirname(
+    os.path.realpath(os.path.join(os.path.abspath(__file__), ".."))
+)
 PUBSUB_HUB = aiopubsub.Hub()
 
 

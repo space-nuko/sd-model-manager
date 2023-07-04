@@ -8,3 +8,4 @@ web/extensions/*
 !web/extensions/core/
 .mypy_cache
 *.db
+*.db.old

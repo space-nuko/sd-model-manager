@@ -1,4 +1,3 @@
-import sys
 from aiohttp import web
 from sqlalchemy import create_engine, select, or_
 from sqlalchemy.orm import Session, selectinload, selectin_polymorphic
@@ -29,10 +28,10 @@ routes = web.RouteTableDef()
 @routes.get("/api/v1/loras")
 async def index(request):
     page_marker = request.rel_url.query.get("page", None)
-    limit = int(request.rel_url.query.get("limit", sys.maxsize))
+    limit = int(request.rel_url.query.get("limit", 100))
     search_query = request.rel_url.query.get("query", None)
 
-    async with request.app["db"].AsyncSession() as s:
+    async with request.app["sdmm_db"].AsyncSession() as s:
         query = select(LoRAModel)
         if search_query:
             query = build_search_query(query, search_query)
@@ -58,7 +57,7 @@ async def show(request):
     if model_id is None:
         return web.Response(status=404)
 
-    async with request.app["db"].AsyncSession() as s:
+    async with request.app["sdmm_db"].AsyncSession() as s:
         query = select(LoRAModel).filter(LoRAModel.id == model_id)
         query = query.options(selectin_polymorphic(SDModel, [LoRAModel])).options(
             selectinload(SDModel.preview_images)
@@ -90,7 +89,7 @@ async def update(request):
     if changes is None:
         return web.Response(status=400)
 
-    async with request.app["db"].AsyncSession() as s:
+    async with request.app["sdmm_db"].AsyncSession() as s:
         query = select(LoRAModel).filter(LoRAModel.id == model_id)
         query = query.options(selectin_polymorphic(SDModel, [LoRAModel])).options(
             selectinload(SDModel.preview_images)

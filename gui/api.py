@@ -16,7 +16,10 @@ class ModelManagerAPI:
         host = self.config.listen
         if host == "0.0.0.0":
             host = "localhost"
-        return f"http://{host}:{self.config.port}"
+        url = f"http://{host}:{self.config.port}"
+        if self.config.mode == "comfyui":
+            url += "/models"
+        return url
 
     async def get_loras(self, query):
         params = {"limit": 1000}

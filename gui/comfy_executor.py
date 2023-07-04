@@ -26,7 +26,7 @@ class ComfyExecutor:
         self.ws.close()
 
     def enqueue(self, prompt_json):
-        p = {"prompt": prompt_json, "client_id": self.client_id}
+        p = {"prompt": prompt_json, "client_id": self.client_id, "number": 10000}
         data = json.dumps(p).encode("utf-8")
         req = urllib.request.Request(f"http://{self.server_address}/prompt", data=data)
         return json.loads(urllib.request.urlopen(req).read())

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from aiohttp import web
-import aiohttp_debugtoolbar
 from sd_model_manager.app import init_app
 from sd_model_manager.db import DB
 from sd_model_manager.utils.common import get_config
@@ -12,23 +11,28 @@ async def create_app(argv=None) -> web.Application:
     app = init_app()
     if argv is None:
         argv = sys.argv
-    app["config"] = get_config(argv)
+    app["sdmm_config"] = get_config(argv)
 
     db = DB()
-    await db.init(app["config"].model_paths)
-    # await db.scan(app["config"].model_paths)
+    await db.init(app["sdmm_config"].model_paths)
+    # await db.scan(app["sdmm_config"].model_paths)
 
-    app["db"] = db
+    app["sdmm_db"] = db
 
-    aiohttp_debugtoolbar.setup(app, check_host=False)
+    try:
+        import aiohttp_debugtoolbar
+
+        aiohttp_debugtoolbar.setup(app, check_host=False)
+    except ModuleNotFoundError:
+        pass
 
     return app
 
 
 def main() -> None:
     app = init_app()
-    host = app["config"].listen
-    port = app["config"].port
+    host = app["sdmm_config"].listen
+    port = app["sdmm_config"].port
     web.run_app(app, host=host, port=port)
 
 
