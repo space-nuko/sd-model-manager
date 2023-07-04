@@ -199,8 +199,8 @@ class PreviewGeneratorDialog(wx.Dialog):
 
         # Status controls/buttons
         self.status_text = wx.StaticText(self, -1, "Ready")
-        self.models_text = (
-            wx.StaticText(self, wx.ID_ANY, label=f"Selected models: {len(self.items)}"),
+        self.models_text = wx.StaticText(
+            self, wx.ID_ANY, label=f"Selected models: {len(self.items)}"
         )
         self.gauge = wx.Gauge(self, -1, 100, size=app.FromDIP(800, 32))
         self.image_panel = ImagePanel(

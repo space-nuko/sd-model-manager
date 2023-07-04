@@ -230,7 +230,7 @@ COLUMNS = [
     ),
     ColumnInfo(
         "Filepath",
-        lambda m: os.path.relpath(m["root_path"], m["filepath"]),
+        lambda m: m["filepath"],
         width=600,
     ),
 ]

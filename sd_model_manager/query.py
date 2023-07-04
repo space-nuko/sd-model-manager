@@ -177,6 +177,7 @@ ALL_CRITERIA = [
     ),
     StringCriteria("root_path", SDModel.root_path),
     StringCriteria("filepath", SDModel.filepath),
+    StringCriteria("path", SDModel.filepath),
     StringCriteria("filename", SDModel.filename),
     StringCriteria("name", SDModel.display_name),
     StringCriteria("author", SDModel.author),
