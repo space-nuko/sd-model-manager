@@ -67,7 +67,7 @@ To connect to the model management server when it's running under ComfyUI, use t
 python client.py --mode comfyui
 ```
 
-All API routes will be moved under a `models/` namespace, like `http://localhost:8188/models/api/v1/loras`.
+**NOTE**: In this mode, all API routes will be moved under a `models/` namespace, like `http://localhost:8188/models/api/v1/loras`.
 
 ## Usage
 
@@ -206,7 +206,7 @@ To reverse the order: `order:reverse:rating`
 
 ## API Reference
 
-The following examples assume standalone mode with the default configuration (port `7779`).
+The following examples assume standalone mode with the default configuration (port `7779`). If running the server with the ComfyUI integration, prepend `/models` to all routes.
 
 ### GET /api/v1/loras
 
