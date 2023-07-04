@@ -12,7 +12,7 @@ Display all your models with thumbnails in a gallery view:
 
 ![Screenshot](./static/screenshot1.png)
 
-Search and browse a list of all your scanned models with metadata:
+Search and browse a list of all your models with metadata:
 
 ![Screenshot](./static/screenshot2.png)
 
@@ -20,7 +20,7 @@ Generate new previews for your models from within the GUI:
 
 ![Screenshot](./static/screenshot3.png)
 
-**NOTE**: To generate previews from the GUI, you should have an instance of ComfyUI running in the backend. To be able to show ComfyUI generation previews in the window, start the ComfyUI server with the argument `--preview-method auto`.
+**NOTE**: To generate previews from the GUI, you should have an instance of ComfyUI running in the backend. To be able to show ComfyUI generation previews in the popup, start the ComfyUI server with the argument `--preview-method auto`.
 
 ## Usage
 
@@ -59,7 +59,7 @@ Your model metadata will be saved to `model_database.db` in case you want to bac
 
 ### ComfyUI Extension
 
-You can use this repo as a ComfyUI extension to embed the server into its existing API. Simply clone/move this repo into the `custom_nodes` folder of your ComfyUI install, then start ComfyUI as usual.
+You can use this repo as a ComfyUI extension to embed the server into its existing API. Simply clone/move this repo into the `custom_nodes` folder of your ComfyUI installation, install the requirements into your virtualenv, then start ComfyUI as usual.
 
 To connect to the model management server when it's running under ComfyUI, use this command:
 
