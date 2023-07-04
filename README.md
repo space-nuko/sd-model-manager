@@ -153,7 +153,7 @@ You can sort the results returned from the database with the `order:` qualifier:
 
 To reverse the order: `order:reverse:dim`
 
-### List of Ordering Types
+#### List of Ordering Types
 
 - `order:id`
 - `order:root_path`

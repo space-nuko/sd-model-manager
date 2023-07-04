@@ -291,7 +291,7 @@ You can sort the results returned from the database with the `order:` qualifier:
 
 To reverse the order, do this: `order:reverse:dim`
 
-### List of Ordering Types
+#### List of Ordering Types
 
 {sort_criteria_pts}
 """
