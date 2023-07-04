@@ -10,6 +10,7 @@ import wxasync
 import tempfile
 import traceback
 import simplejson
+from wx.lib.agw import floatspin
 from dataclasses import dataclass
 from asyncio.locks import Event
 
@@ -48,11 +49,13 @@ class GeneratePreviewsOptions:
     prompt_after: str
     n_tags: int
     seed: int
+    denoise: float
 
 
 @dataclass
 class PreviewPromptData:
     seed: int
+    denoise: float
     checkpoint: str
     vae: str
     positive: str
@@ -76,6 +79,7 @@ class PreviewPromptData:
         filename = image["filename"]
 
         prompt["11"]["inputs"]["seed"] = self.seed
+        prompt["11"]["inputs"]["denoise"] = self.denoise
         prompt["16"]["inputs"]["ckpt_name"] = self.checkpoint
         prompt["17"]["inputs"]["vae_name"] = self.vae
         prompt["6"]["inputs"]["text"] = self.positive
@@ -171,8 +175,23 @@ class PreviewGeneratorDialog(wx.Dialog):
             size=self.Parent.FromDIP(wx.Size(100, 25)),
         )
 
+        self.spinner_denoise = floatspin.FloatSpin(
+            self,
+            id=wx.ID_ANY,
+            min_val=0,
+            max_val=1,
+            increment=0.01,
+            value=0.5,
+            agwStyle=floatspin.FS_LEFT,
+        )
+        self.spinner_denoise.SetFormat("%f")
+        self.spinner_denoise.SetDigits(2)
+
         # Status controls/buttons
         self.status_text = wx.StaticText(self, -1, "Ready")
+        self.models_text = (
+            wx.StaticText(self, wx.ID_ANY, label=f"Selected models: {len(self.items)}"),
+        )
         self.gauge = wx.Gauge(self, -1, 100, size=app.FromDIP(800, 32))
         self.image_panel = ImagePanel(
             self, style=wx.SUNKEN_BORDER, size=app.FromDIP(512, 512)
@@ -198,8 +217,8 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.OnRegenerate, id=wx.ID_HELP)
         self.Bind(wx.EVT_BUTTON, self.OnUpscale, id=wx.ID_APPLY)
         self.Bind(wx.EVT_BUTTON, self.OnCancel, id=wx.ID_CANCEL)
-        self.text_prompt_before.Bind(wx.EVT_TEXT_ENTER, self.OnRegenerate)
-        self.text_prompt_after.Bind(wx.EVT_TEXT_ENTER, self.OnRegenerate)
+        # self.text_prompt_before.Bind(wx.EVT_TEXT_ENTER, self.OnRegenerate)
+        # self.text_prompt_after.Bind(wx.EVT_TEXT_ENTER, self.OnRegenerate)
         wxasync.AsyncBind(wx.EVT_BUTTON, self.OnOK, self.button_ok, id=wx.ID_OK)
         wxasync.AsyncBind(wx.EVT_CLOSE, self.OnClose, self)
 
@@ -233,11 +252,12 @@ class PreviewGeneratorDialog(wx.Dialog):
         )
         sizerRightAfter.Add(self.spinner_seed, proportion=1, flag=wx.ALL, border=5)
         sizerRightAfter.Add(
-            wx.StaticText(self, wx.ID_ANY, label=f"Selected models: {len(self.items)}"),
+            wx.StaticText(self, wx.ID_ANY, label="Denoise"),
             proportion=0,
             border=5,
             flag=wx.ALL,
         )
+        sizerRightAfter.Add(self.spinner_denoise, proportion=1, flag=wx.ALL, border=5)
 
         sizerRight = wx.StaticBoxSizer(wx.VERTICAL, self, label="Parameters")
         sizerRight.Add(wx.StaticText(self, wx.ID_ANY, label="Positive"))
@@ -246,6 +266,12 @@ class PreviewGeneratorDialog(wx.Dialog):
         sizerRight.Add(wx.StaticText(self, wx.ID_ANY, label="Negative"))
         sizerRight.Add(self.text_prompt_after, proportion=2, flag=wx.ALL | wx.EXPAND)
         sizerRight.Add(sizerRightAfter, proportion=1, flag=wx.ALL)
+        sizerRight.Add(
+            self.models_text,
+            proportion=0,
+            border=5,
+            flag=wx.ALL,
+        )
 
         sizerMain = wx.FlexGridSizer(1, 2, 10, 10)
         sizerMain.AddMany([(sizerLeft, 1), (sizerRight, 1, wx.EXPAND)])
@@ -321,6 +347,7 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.text_prompt_before.Disable()
         self.text_prompt_after.Disable()
         self.spinner_seed.Disable()
+        self.spinner_denoise.Disable()
 
         if self.result is not None:
             await self.save_preview_image(self.items[0], self.result)
@@ -335,6 +362,7 @@ class PreviewGeneratorDialog(wx.Dialog):
                 self.status_text.SetLabel(
                     f"Generating preview: {filename} ({i}/{len(self.items)-1})"
                 )
+                self.models_text.SetLabel(f"Progress: {i}/{len(self.items)-1}")
                 self.spinner_seed.SetValue(self.last_seed)
                 e = Event()
                 thread = self.start_prompt(item, e=e)
@@ -441,6 +469,7 @@ class PreviewGeneratorDialog(wx.Dialog):
             self.text_prompt_after.GetValue(),
             20,
             self.spinner_seed.GetValue(),
+            self.spinner_denoise.GetValue(),
         )
 
     def get_lora_name(self, item):
@@ -477,12 +506,16 @@ class PreviewGeneratorDialog(wx.Dialog):
         else:
             seed = options.seed
 
+        denoise = options.denoise
+
         print(f"Seed: {seed}")
 
         positive = f"{options.prompt_before}"
         negative = options.prompt_after
 
-        data = PreviewPromptData(seed, checkpoint, vae, positive, negative, lora_name)
+        data = PreviewPromptData(
+            seed, denoise, checkpoint, vae, positive, negative, lora_name
+        )
         return data
 
     def enqueue_prompt_and_wait(self, executor, prompt):
@@ -539,7 +572,8 @@ class PreviewGeneratorDialog(wx.Dialog):
             self.button_regenerate.Enable()
             self.button_ok.Enable()
             self.button_upscale.Enable()
-            self.status_text.SetLabel("Finished.")
+            seed = self.last_upscale_seed if self.upscaled else self.last_seed
+            self.status_text.SetLabel(f"Finished. (seed: {seed})")
 
     def get_output_image(self, prompt_id):
         images, files = self.comfy_api.get_images(prompt_id)
@@ -589,9 +623,9 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.last_data = data
         self.result = image_location
         self.last_upscale_seed = data.seed
+        self.upscaled = True
 
         self.after_execute()
-        self.upscaled = True
 
     def on_msg_executing(self, prompt, data):
         node_id = data["node"]

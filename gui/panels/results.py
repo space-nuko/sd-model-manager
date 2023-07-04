@@ -298,7 +298,7 @@ class GalleryThumbnailHandler(PILImageHandler):
             with Image.open(filename) as pil:
                 originalsize = pil.size
 
-                pil.thumbnail((512, 512), Image.Resampling.LANCZOS)
+                pil.thumbnail((768, 768), Image.Resampling.LANCZOS)
 
                 img = wx.Image(pil.size[0], pil.size[1])
 
