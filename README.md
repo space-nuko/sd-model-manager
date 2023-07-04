@@ -2,7 +2,7 @@
 
 A desktop application and companion web server for browsing and managing Stable Diffusion models (embeddings, LoRAs, etc.) and their metadata.
 
-Can be used standalone with the included frontend, embedded into ComfyUI for use with their ecosystem, or repurposed as an independent API server.
+Can be used standalone with the included frontend, embedded into [ComfyUI](https://github.com/comfyanonymous/ComfyUI) for use with their ecosystem, or repurposed as an independent API server.
 
 **NOTE:** Still alpha-quality for the time being, please back up your data frequently!
 
@@ -59,7 +59,7 @@ Your model metadata will be saved to `model_database.db` in case you want to bac
 
 ### ComfyUI Extension
 
-You can use this repo as a ComfyUI extension to embed the server into its existing API. Simply clone/move this repo into the `custom_nodes` folder of your ComfyUI installation, install the requirements into your virtualenv, then start ComfyUI as usual.
+You can use this repo as a [ComfyUI](https://github.com/comfyanonymous/ComfyUI) extension to embed the server into its existing API. Simply clone/move this repo into the `custom_nodes` folder of your ComfyUI installation, install the requirements into your virtualenv, then start ComfyUI as usual.
 
 ```bash
 cd /c/ComfyUI

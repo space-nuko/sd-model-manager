@@ -180,6 +180,16 @@ class DB:
                     except:
                         continue
 
+                    display_name = metadata.get("ssmd_display_name", None)
+                    author = metadata.get("ssmd_author", None)
+                    source = metadata.get("ssmd_source", None)
+                    keywords = metadata.get("ssmd_keywords", None)
+                    negative_keywords = metadata.get("ssmd_negative_keywords", None)
+                    version = metadata.get("ssmd_version", None)
+                    description = metadata.get("ssmd_description", None)
+                    rating = to_int(metadata.get("ssmd_rating", None))
+                    tags = metadata.get("ssmd_tags", None)
+
                     filepath = os.path.relpath(f, path)
                     query = select(LoRAModel).filter(
                         and_(
@@ -190,28 +200,29 @@ class DB:
                     #     selectinload(SDModel.preview_images)
                     # )
 
+                    id = None
                     row = (await session.execute(query)).one_or_none()
                     if row is not None:
-                        print("FOUND!")
-                        print(filepath)
+                        # id = row[0].id
                         continue
 
                     # if "ss_lr_scheduler" not in metadata:
                     #     continue
                     lora_model = LoRAModel(
+                        id=id,
                         root_path=path,
                         filepath=filepath,
                         filename=os.path.basename(f),
                         last_embedded=datetime.min,
-                        display_name=metadata.get("ssmd_display_name", None),
-                        author=metadata.get("ssmd_author", None),
-                        source=metadata.get("ssmd_source", None),
-                        keywords=metadata.get("ssmd_keywords", None),
-                        negative_keywords=metadata.get("ssmd_negative_keywords", None),
-                        version=metadata.get("ssmd_version", None),
-                        description=metadata.get("ssmd_description", None),
-                        rating=to_int(metadata.get("ssmd_rating", None)),
-                        tags=metadata.get("ssmd_tags", None),
+                        display_name=display_name,
+                        author=author,
+                        source=source,
+                        keywords=keywords,
+                        negative_keywords=negative_keywords,
+                        version=version,
+                        description=description,
+                        rating=rating,
+                        tags=tags,
                         model_hash=metadata.get("sshs_model_hash", None),
                         legacy_hash=metadata.get("sshs_legacy_hash", None),
                         session_id=to_int(metadata.get("ss_session_id", None)),

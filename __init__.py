@@ -42,6 +42,7 @@ async def initialize_comfyui():
 
     db = DB()
     await db.init(app["sdmm_config"].model_paths)
+    await db.scan(app["sdmm_config"].model_paths)
     app["sdmm_db"] = db
 
     print("[SD-Model-Manager] Initialized via ComfyUI server.")

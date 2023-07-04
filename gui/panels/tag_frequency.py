@@ -129,7 +129,7 @@ class TagFrequencyPanel(wx.Panel):
 
     async def SubItemSelected(self, key, items):
         item = {}
-        if len(items) == 1:
+        if len(items) > 0:
             item = items[0]
         tags = item.get("tag_frequency", {})
         self.list.set_tags(tags)

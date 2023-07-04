@@ -25,9 +25,9 @@ CHECKPOINTS = [
     "Based64Mix-v3",
     "Based64",
     "AbyssOrangeMix2_nsfw",
-    "animefull-latest",
-    "animefull-final-pruned",
-    "v1-5-pruned-emaonly",
+    "animefull",
+    "animefull",
+    "v1-5-",
 ]
 VAES = ["animefull-latest", "kl-f8-anime", "vae-ft-mse"]
 
@@ -326,16 +326,21 @@ class PreviewGeneratorDialog(wx.Dialog):
             await self.save_preview_image(self.items[0], self.result)
 
         if len(self.items) > 1:
-            self.status_text.SetLabel(f"Generating {len(self.items)-1} previews...")
+            self.status_text.SetLabel(f"Generating previews...")
 
             upscaled = self.upscaled
             self.autogen = True
-            for item in self.items[1:]:
+            for i, item in enumerate(self.items[1:]):
+                filename = os.path.basename(item["filepath"])
+                self.status_text.SetLabel(
+                    f"Generating preview: {filename} ({i}/{len(self.items)-1})"
+                )
                 self.spinner_seed.SetValue(self.last_seed)
                 e = Event()
                 thread = self.start_prompt(item, e=e)
                 await e.wait()
                 if upscaled:
+                    self.status_text.SetLabel("Starting upscale...")
                     self.spinner_seed.SetValue(self.last_upscale_seed)
                     e = Event()
                     thread = self.upscale_prompt(item, e=e)
@@ -356,9 +361,11 @@ class PreviewGeneratorDialog(wx.Dialog):
         await on_close(self, evt)
 
     def OnRegenerate(self, evt):
+        self.status_text.SetLabel("Starting...")
         self.start_prompt(self.items[0])
 
     def OnUpscale(self, evt):
+        self.status_text.SetLabel("Starting upscale...")
         self.upscale_prompt(self.items[0])
 
     def upscale_prompt(self, item, e=None):
