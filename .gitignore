@@ -12,3 +12,4 @@ web/extensions/*
 build/
 dist/
 client.spec
+*.db-journal
