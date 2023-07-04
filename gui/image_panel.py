@@ -110,6 +110,9 @@ class ImagePanel(wx.Panel):
     def Clear(self):
         """Set the displayed image to blank"""
         self.bmpImage.SetBitmap(self.blank)
+        self.bitmap = None
+        self.image = None
+        self.aspect = None
         self.zoom = 1.0
 
     def ScaleToFit(self) -> None:
@@ -146,13 +149,3 @@ class ImagePanel(wx.Panel):
             # else:
             #     self.ShowScrollBars = False
             #     self.SetupScrolling()
-
-
-if __name__ == "__main__":
-    app = wx.App()
-    frame = wx.Frame(None)
-    panel = ImagePanel(frame)
-    frame.SetSize(800, 625)
-    frame.Show()
-    panel.Load("D:\\test.jpg")
-    app.MainLoop()

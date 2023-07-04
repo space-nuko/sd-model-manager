@@ -49,7 +49,7 @@ class ModelManagerAPI:
         req.add_header("Content-Type", "application/json")
         data = simplejson.dumps({"changes": changes})
         data = data.encode("utf-8")
-        with urllib.request.urlopen(req, data=data, timeout=2) as response:
+        with urllib.request.urlopen(req, data=data) as response:
             return response.read()
 
 

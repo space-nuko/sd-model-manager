@@ -1,6 +1,6 @@
 import re
 from typing import Optional, Pattern
-from sqlalchemy import create_engine, func, select, not_, or_, and_, nulls_last
+from sqlalchemy import create_engine, func, select, not_, or_, and_, nulls_last, exists
 
 from sd_model_manager.models.sd_models import SDModel, LoRAModel, LoRAModelSchema
 
@@ -77,14 +77,18 @@ class NumberCriteria(AbstractCriteria):
 
 
 class HasCriteria(AbstractCriteria):
-    def __init__(self, suffix, column, compare=""):
+    def __init__(self, suffix, column, compare="", count=False):
         self.re = re.compile(rf"(^| +)(-)?has:{suffix}", re.I)
         self.column = column
         self.compare = ""
+        self.count = count
 
     def do_apply(self, orm_query, matches):
         no = matches[2] is not None
-        stmt = and_(self.column.is_not(None), self.column != self.compare)
+        if self.count:
+            stmt = self.column.any()
+        else:
+            stmt = and_(self.column.is_not(None), self.column != self.compare)
         if no:
             stmt = not_(stmt)
         return orm_query.where(stmt)
@@ -194,8 +198,9 @@ ALL_CRITERIA = [
     HasCriteria("description", SDModel.description),
     HasCriteria("tags", SDModel.tags),
     HasCriteria("rating", SDModel.rating, 0),
-    HasCriteria("image", SDModel.preview_images, []),
-    HasCriteria("preview_image", SDModel.preview_images, []),
+    HasCriteria("image", SDModel.preview_images, 0, count=True),
+    HasCriteria("preview_image", SDModel.preview_images, 0, count=True),
+    HasCriteria("vae", LoRAModel.vae_hash),
     HasCriteria("tag_frequency", LoRAModel.unique_tags),
     HasCriteria("dataset_dirs", LoRAModel.dataset_dirs),
     HasCriteria("reg_dataset_dirs", LoRAModel.reg_dataset_dirs),

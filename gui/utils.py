@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import io
+import asyncio
 import aiopubsub
 import threading
 from typing import Callable
@@ -87,6 +88,13 @@ def start_thread(func, *args):
     return thread
 
 
+def start_async_thread(func, *args):
+    thread = threading.Thread(target=asyncio.run, args=(func(*args),))
+    thread.setDaemon(True)
+    thread.start()
+    return thread
+
+
 class ColumnInfo:
     name: str
     callback: Callable
@@ -110,7 +118,7 @@ def format_rating(rating):
     return "\u2605" * int(rating / 2) + "\u00BD" * int(rating % 2 != 0)
 
 
-re_optimizer = re.compile(r"([^.]+)(\(.*\))?$")
+re_optimizer = re.compile(r".*([^.]+)(\(.*\))?$")
 
 
 def format_optimizer(m):
@@ -118,7 +126,7 @@ def format_optimizer(m):
     if optimizer is None:
         return None
 
-    matches = re_optimizer.search(optimizer)
+    matches = re_optimizer.match(optimizer)
     if matches is None:
         return optimizer
     return matches[1]
@@ -129,7 +137,7 @@ def format_optimizer_args(m):
     if optimizer is None:
         return None
 
-    matches = re_optimizer.search(optimizer)
+    matches = re_optimizer.match(optimizer)
     if matches is None or matches[2] is None:
         return None
     return matches[2].lstrip("(").rstrip(")")

@@ -50,7 +50,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
         # https://github.com/wxWidgets/wxWidgets/issues/4541
         self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnListItemActivated)
+        wxasync.AsyncBind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnListItemActivated, self)
         self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
         wxasync.AsyncBind(
             wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked, self
@@ -243,11 +243,11 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         selection = self.get_selection()
         self.pub.publish(Key("item_selected"), selection)
 
-    def OnListItemActivated(self, evt):
+    async def OnListItemActivated(self, evt):
         target = self.filtered[evt.GetIndex()]
         dialog = MetadataDialog(self, target, app=self.app)
         dialog.CenterOnParent(wx.BOTH)
-        dialog.ShowModal()
+        await wxasync.AsyncShowDialogModal(dialog)
         dialog.Destroy()
 
     async def OnListItemRightClicked(self, evt):
@@ -274,7 +274,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
                 self.refresh_columns()
 
             items.append(PopupMenuItem(col.name, check, checked=col.is_visible))
-        menu = PopupMenu(target=self, items=items)
+        menu = PopupMenu(target=self, items=items, app=self.app)
         pos = evt.GetPoint()
         self.PopupMenu(menu, pos)
         menu.Destroy()
@@ -324,7 +324,9 @@ class ResultsGallery(wx.Panel):
         self.gallery._tTextHeight = 32
 
         self.gallery.Bind(EVT_THUMBNAILS_SEL_CHANGED, self.OnThumbnailSelected)
-        self.gallery.Bind(EVT_THUMBNAILS_DCLICK, self.OnThumbnailActivated)
+        wxasync.AsyncBind(
+            EVT_THUMBNAILS_DCLICK, self.OnThumbnailActivated, self.gallery
+        )
         self.gallery.Bind(EVT_THUMBNAILS_RCLICK, self.OnThumbnailRightClicked)
 
         self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
@@ -359,14 +361,14 @@ class ResultsGallery(wx.Panel):
         # list.Focus(item["_index"])
         self.pub.publish(Key("item_selected"), list.get_selection())
 
-    def OnThumbnailActivated(self, evt):
+    async def OnThumbnailActivated(self, evt):
         selected = self.gallery.GetSelectedItem()
         if selected is None:
             return
         item = selected.GetData()
         dialog = MetadataDialog(self, item, app=self.app)
         dialog.CenterOnParent(wx.BOTH)
-        dialog.ShowModal()
+        await wxasync.AsyncShowDialogModal(dialog)
         dialog.Destroy()
 
     def OnThumbnailRightClicked(self, evt):
@@ -474,9 +476,14 @@ class ResultsNotebook(wx.Panel):
     def get_selection(self):
         return self.results_panel.get_selection()
 
-    def refresh_one_item(self, item):
+    async def refresh_one_item(self, item):
+        try_load_image.cache_clear()
         self.results_panel.list.refresh_one_text(item)
         self.results_gallery.refresh_one_thumbnail(item)
+        self.Refresh()
+        selection = self.get_selection()
+        if item in selection:
+            await self.app.frame.ForceSelect(selection)
 
     def OnPageChanged(self, evt):
         sel = evt.GetSelection()

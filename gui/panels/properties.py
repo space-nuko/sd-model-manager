@@ -3,6 +3,7 @@ import aiopubsub
 from aiopubsub import Key
 
 import wx
+import wxasync
 import wx.aui
 import wx.lib.newevent
 import wx.lib.mixins.listctrl as listmix
@@ -256,7 +257,7 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 count, f"Saving changes... ({count}/{len(self.selected_items)})"
             )
 
-            self.app.frame.results_panel.refresh_one_item(item)
+            await self.app.frame.results_panel.refresh_one_item(item)
 
         progress.Destroy()
         self.app.SetStatusText(f"Updated {updated} fields")
@@ -273,15 +274,19 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
         if not self.changes or self.is_committing:
             return
 
+        PROMPT = False  # TODO
         if self.changes:
-            dlg = wx.MessageDialog(
-                None,
-                "You have unsaved changes, would you like to commit them?",
-                "Updater",
-                wx.YES_NO | wx.ICON_QUESTION,
-            )
-            result = dlg.ShowModal()
-            if result == wx.ID_YES:
+            if PROMPT:
+                dlg = wx.MessageDialog(
+                    None,
+                    "You have unsaved changes, would you like to commit them?",
+                    "Updater",
+                    wx.YES_NO | wx.ICON_QUESTION,
+                )
+                result = await wxasync.AsyncShowDialogModal(dlg)
+                if result == wx.ID_YES:
+                    await self.commit_changes()
+            else:
                 await self.commit_changes()
 
     async def SubItemSelected(self, key, items):
