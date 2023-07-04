@@ -46,6 +46,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.filtered = []
         self.filter = None
         self.clicked = False
+        self.primary_item = None
 
         # EVT_LIST_ITEM_SELECTED and ULC_VIRTUAL don't mix
         # https://github.com/wxWidgets/wxWidgets/issues/4541
@@ -188,7 +189,15 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         for i in range(1, num):
             item = self.GetNextSelected(item)
             selection.append(item)
-        return [self.filtered[i] for i in selection]
+        selection = [self.filtered[i] for i in selection]
+
+        if len(selection) == 0:
+            self.primary_item = None
+
+        if self.primary_item is not None:
+            if self.primary_item in selection:
+                selection.insert(0, selection.pop(selection.index(self.primary_item)))
+        return selection
 
     def OnGetItemColumnImage(self, item, col):
         return []
@@ -251,8 +260,10 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         dialog.Destroy()
 
     async def OnListItemRightClicked(self, evt):
-        self.ClearSelection()
-        self.Select(evt.GetIndex())
+        idx = evt.GetIndex()
+        self.Select(idx)
+        self.Focus(idx)
+        self.primary_item = self.filtered[idx]
         selection = self.get_selection()
         await self.app.frame.ForceSelect(selection)
 

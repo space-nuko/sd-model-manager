@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 import wx
 
+from gui import ids, utils
+
 
 @dataclass
 class GeneratePreviewsOptions:
@@ -22,6 +24,8 @@ class GeneratePreviewsDialog(wx.Dialog):
         )
 
         self.SetEscapeId(12345)
+
+        utils.set_icons(self)
 
         self.selection = selection
         self.app = app

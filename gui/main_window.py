@@ -36,6 +36,8 @@ class MainWindow(wx.Frame):
         self.menu_bar.Append(self.menu_file, "File")
         self.SetMenuBar(self.menu_bar)
 
+        utils.set_icons(self)
+
         icon_size = (32, 32)
         self.toolbar = self.CreateToolBar()
         self.tool_save = self.toolbar.AddTool(

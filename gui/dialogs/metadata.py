@@ -4,6 +4,7 @@ import wx.lib.newevent
 from wx.lib.agw import ultimatelistctrl
 
 
+from gui import ids, utils
 from gui.popup_menu import PopupMenu, PopupMenuItem
 from gui.utils import trim_string
 
@@ -108,6 +109,8 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
 
         self.item = item
         self.app = app
+
+        utils.set_icons(self)
 
         self.InsertColumn(0, "Key")
         self.InsertColumn(1, "Value")

@@ -83,6 +83,23 @@ def combine_tag_freq(tags):
     return totals
 
 
+def set_icons(window):
+    bundle = wx.IconBundle()
+    bundle.AddIcon(
+        wx.Icon(
+            os.path.join(PROGRAM_ROOT, "images/icons/16/application_side_list.png"),
+            wx.BITMAP_TYPE_PNG,
+        )
+    )
+    bundle.AddIcon(
+        wx.Icon(
+            os.path.join(PROGRAM_ROOT, "images/icons/32/application_side_list.png"),
+            wx.BITMAP_TYPE_PNG,
+        )
+    )
+    window.SetIcons(bundle)
+
+
 def start_thread(func, *args):
     thread = threading.Thread(target=func, args=args)
     thread.setDaemon(True)
