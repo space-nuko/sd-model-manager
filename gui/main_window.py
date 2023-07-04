@@ -12,6 +12,9 @@ from gui.panels.preview_image import PreviewImagePanel
 from gui.panels.properties import PropertiesPanel
 from gui.panels.results import ResultsNotebook
 from gui.panels.tag_frequency import TagFrequencyPanel
+import gui.dialogs.download
+from gui import ids, utils
+from gui.dialogs.generate_previews import GeneratePreviewsDialog
 
 
 class MainWindow(wx.Frame):
@@ -33,16 +36,46 @@ class MainWindow(wx.Frame):
         self.menu_bar.Append(self.menu_file, "File")
         self.SetMenuBar(self.menu_bar)
 
-        icon_size = (24, 24)
+        icon_size = (32, 32)
         self.toolbar = self.CreateToolBar()
-        self.tool_save = self.toolbar.AddTool(wx.ID_SAVE, "Save",
-                                              wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_OTHER, icon_size),
-                                              wx.NullBitmap, wx.ITEM_NORMAL, 'Save', "Long help for 'Save'.", None)
+        self.tool_save = self.toolbar.AddTool(
+            wx.ID_SAVE,
+            "Save",
+            wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_OTHER, icon_size),
+            wx.NullBitmap,
+            wx.ITEM_NORMAL,
+            "Save",
+            "Long help for 'Save'.",
+            None,
+        )
+        self.tool_generate_previews = self.toolbar.AddTool(
+            ids.ID_GENERATE_PREVIEWS,
+            "Generate Previews...",
+            utils.load_bitmap("images/icons/32/picture_add.png"),
+            wx.NullBitmap,
+            wx.ITEM_NORMAL,
+            "Generate Previews...",
+            "Create previews for the selected models.",
+            None,
+        )
+
         self.toolbar.Realize()
 
         self.toolbar.EnableTool(wx.ID_SAVE, False)
+        self.toolbar.EnableTool(ids.ID_GENERATE_PREVIEWS, False)
 
         wxasync.AsyncBind(wx.EVT_TOOL, self.OnSave, self, id=wx.ID_SAVE)
+        wxasync.AsyncBind(
+            wx.EVT_TOOL, self.OnGeneratePreviews, self, id=ids.ID_GENERATE_PREVIEWS
+        )
+
+        self.accel_tbl = wx.AcceleratorTable(
+            [
+                (wx.ACCEL_CTRL, ord("S"), wx.ID_SAVE),
+                (wx.ACCEL_CTRL, ord("P"), ids.ID_GENERATE_PREVIEWS),
+            ]
+        )
+        self.SetAcceleratorTable(self.accel_tbl)
 
         # self.aui_mgr.AddPane(self.toolbar, wx.aui.AuiPaneInfo().
         #                      Name("Toolbar").CaptionVisible(False).
@@ -51,32 +84,71 @@ class MainWindow(wx.Frame):
         #                      LeftDockable(False).RightDockable(False))
 
         self.results_panel = ResultsNotebook(self, app=self.app)
-        self.aui_mgr.AddPane(self.results_panel, wx.aui.AuiPaneInfo().Caption("Search Results").Center().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))))
+        self.aui_mgr.AddPane(
+            self.results_panel,
+            wx.aui.AuiPaneInfo()
+            .Caption("Search Results")
+            .Center()
+            .CloseButton(False)
+            .MinSize(self.FromDIP(wx.Size(300, 300))),
+        )
 
         self.dir_tree_panel = DirTreePanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.dir_tree_panel, wx.aui.AuiPaneInfo().Caption("Files").Top().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))).BestSize(self.FromDIP(wx.Size(400, 400))))
+        self.aui_mgr.AddPane(
+            self.dir_tree_panel,
+            wx.aui.AuiPaneInfo()
+            .Caption("Files")
+            .Top()
+            .Right()
+            .CloseButton(False)
+            .MinSize(self.FromDIP(wx.Size(300, 300)))
+            .BestSize(self.FromDIP(wx.Size(400, 400))),
+        )
 
         self.tag_freq_panel = TagFrequencyPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.tag_freq_panel, wx.aui.AuiPaneInfo().Caption("Tag Frequency").Bottom().Right().CloseButton(False).MinSize(self.FromDIP(wx.Size(300, 300))).BestSize(self.FromDIP(wx.Size(400, 400))))
+        self.aui_mgr.AddPane(
+            self.tag_freq_panel,
+            wx.aui.AuiPaneInfo()
+            .Caption("Tag Frequency")
+            .Bottom()
+            .Right()
+            .CloseButton(False)
+            .MinSize(self.FromDIP(wx.Size(300, 300)))
+            .BestSize(self.FromDIP(wx.Size(400, 400))),
+        )
 
         self.properties_panel = PropertiesPanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.properties_panel, wx.aui.AuiPaneInfo().Caption("Properties").Top().Left().CloseButton(False).MinSize(self.FromDIP(wx.Size(325, 325))))
+        self.aui_mgr.AddPane(
+            self.properties_panel,
+            wx.aui.AuiPaneInfo()
+            .Caption("Properties")
+            .Top()
+            .Left()
+            .CloseButton(False)
+            .MinSize(self.FromDIP(wx.Size(325, 325))),
+        )
 
         self.image_panel = PreviewImagePanel(self, app=self.app)
-        self.aui_mgr.AddPane(self.image_panel, wx.aui.AuiPaneInfo().Caption("Preview Image").Bottom().Left().CloseButton(False).MinSize(wx.Size(250, 250)).BestSize(self.FromDIP(wx.Size(250, 250))))
+        self.aui_mgr.AddPane(
+            self.image_panel,
+            wx.aui.AuiPaneInfo()
+            .Caption("Preview Image")
+            .Bottom()
+            .Left()
+            .CloseButton(False)
+            .MinSize(wx.Size(250, 250))
+            .BestSize(self.FromDIP(wx.Size(250, 250))),
+        )
 
         self.aui_mgr.Update()
 
         self.statusbar = self.CreateStatusBar(1)
 
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
+        self.sub.add_async_listener(
+            Key("events", "item_selected"), self.SubItemSelected
+        )
         self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
-
-        self.accel_tbl = wx.AcceleratorTable([
-            (wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE),
-        ])
-        self.SetAcceleratorTable(self.accel_tbl)
 
         self.Show()
 
@@ -90,8 +162,24 @@ class MainWindow(wx.Frame):
         await self.properties_panel.commit_changes()
         self.Refresh()
 
+    async def OnGeneratePreviews(self, evt):
+        selection = self.results_panel.get_selection()
+        if len(selection) == 0:
+            return
+
+        await gui.dialogs.download.run(self.app, selection)
+        # dialog = GeneratePreviewsDialog(self, selection, app=self.app)
+        # dialog.CenterOnParent(wx.BOTH)
+        # result = dialog.ShowModal()
+        # if result == wx.ID_OK:
+        #     print("OK")
+        #     print(dialog.result)
+        # dialog.Destroy()
+        # self.Refresh()
+
     async def SubItemSelected(self, key, items):
         self.toolbar.EnableTool(wx.ID_SAVE, False)
+        self.toolbar.EnableTool(ids.ID_GENERATE_PREVIEWS, len(items) > 0)
 
     async def search(self, query):
         self.statusbar.SetStatusText("Searching...")

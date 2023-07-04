@@ -182,11 +182,10 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             updated += result['fields_updated']
             progress.Update(count, f"Saving changes... ({count}/{len(self.selected_items)})")
 
-            self.app.frame.results_panel.results_panel.list.refresh_one_text(item)
-            self.app.frame.results_panel.results_gallery.refresh_one_thumbnail(item)
+            self.app.frame.results_panel.refresh_one_item(item)
 
         progress.Destroy()
-        self.app.frame.statusbar.SetStatusText(f"Updated {updated} fields")
+        self.app.SetStatusText(f"Updated {updated} fields")
 
         self.is_committing = False
 

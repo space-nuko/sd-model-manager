@@ -11,7 +11,7 @@ import wxasync
 
 from sd_model_manager.utils.common import try_load_image
 from gui.scrolledthumbnail import ScrolledThumbnail, Thumb, PILImageHandler, file_broken, EVT_THUMBNAILS_SEL_CHANGED, EVT_THUMBNAILS_DCLICK, EVT_THUMBNAILS_RCLICK
-from gui.metadata_dialog import MetadataDialog
+from gui.dialogs.metadata import MetadataDialog
 from gui.utils import PUBSUB_HUB, COLUMNS, find_image_path_for_model
 from gui.popup_menu import PopupMenu, PopupMenuItem, create_popup_menu_for_item
 
@@ -258,87 +258,6 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         menu.Destroy()
         pass
 
-class ResultsNotebook(wx.Panel):
-    def __init__(self, parent, app=None):
-        self.app = app
-
-        wx.Panel.__init__(self, parent, id=wx.ID_ANY)
-
-        self.results = {}
-        self.notebook = wx.Notebook(self)
-        self.thumbs_need_update = False
-
-        self.results_panel = ResultsPanel(self.notebook, app=self.app)
-        self.results_gallery = ResultsGallery(self.notebook, app=self.app)
-
-        self.notebook.AddPage(self.results_panel, "List")
-        self.notebook.AddPage(self.results_gallery, "Gallery")
-
-        self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
-        self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
-
-        self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
-        self.button = wx.Button(self, label="Search")
-
-        wxasync.AsyncBind(wx.EVT_BUTTON, self.OnSearch, self.button)
-        wxasync.AsyncBind(wx.EVT_TEXT_ENTER, self.OnSearch, self.search_box)
-        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
-
-        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer2.Add(self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5)
-        self.sizer2.Add(self.button, proportion=1, flag=wx.ALL, border=5)
-
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
-        self.sizer.Add(self.sizer2, flag=wx.EXPAND | wx.ALL, border=5)
-
-        self.SetSizerAndFit(self.sizer)
-
-    def OnPageChanged(self, evt):
-        sel = evt.GetSelection()
-        if sel == 1: # gallery page
-            self.results_gallery.SetThumbs(self.results_panel.list.filtered)
-
-    async def SubTreeFilterChanged(self, key, path):
-        list = self.results_panel.list
-        list.filter = path
-        list.refresh_filter()
-
-        if len(list.filtered) > 0:
-            list.Select(0, 1)
-            list.Focus(0)
-            self.pub.publish(Key("item_selected"), list.get_selection())
-
-        self.results_gallery.needs_update = True
-        if self.notebook.GetSelection() == 1:
-            self.results_gallery.SetThumbs(list.filtered)
-
-    async def search(self, query):
-        self.pub.publish(Key("item_selected"), [])
-        self.results = {}
-
-        try_load_image.cache_clear()
-
-        list = self.results_panel.list
-        list.DeleteAllItems()
-        list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
-
-        self.results = await self.app.api.get_loras(query)
-        list.set_results(self.results)
-
-        if len(list.filtered) > 0:
-            list.Select(0, 1)
-            list.Focus(0)
-            self.pub.publish(Key("item_selected"), list.get_selection())
-
-        self.results_gallery.needs_update = True
-        if self.notebook.GetSelection() == 1:
-            self.results_gallery.SetThumbs(list.filtered)
-
-    async def OnSearch(self, evt):
-        await self.app.frame.search(self.search_box.GetValue())
-
 class GalleryThumbnailHandler(PILImageHandler):
     def Load(self, filename):
         try:
@@ -477,3 +396,94 @@ class ResultsPanel(wx.Panel):
         self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
 
         self.SetSizerAndFit(self.sizer)
+
+    def get_selection(self):
+        return self.list.get_selection()
+
+class ResultsNotebook(wx.Panel):
+    def __init__(self, parent, app=None):
+        self.app = app
+
+        wx.Panel.__init__(self, parent, id=wx.ID_ANY)
+
+        self.results = {}
+        self.notebook = wx.Notebook(self)
+        self.thumbs_need_update = False
+
+        self.results_panel = ResultsPanel(self.notebook, app=self.app)
+        self.results_gallery = ResultsGallery(self.notebook, app=self.app)
+
+        self.notebook.AddPage(self.results_panel, "List")
+        self.notebook.AddPage(self.results_gallery, "Gallery")
+
+        self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
+        self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
+        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
+
+        self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
+        self.button = wx.Button(self, label="Search")
+
+        wxasync.AsyncBind(wx.EVT_BUTTON, self.OnSearch, self.button)
+        wxasync.AsyncBind(wx.EVT_TEXT_ENTER, self.OnSearch, self.search_box)
+        self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
+
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2.Add(self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5)
+        self.sizer2.Add(self.button, proportion=1, flag=wx.ALL, border=5)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.notebook, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
+        self.sizer.Add(self.sizer2, flag=wx.EXPAND | wx.ALL, border=5)
+
+        self.SetSizerAndFit(self.sizer)
+
+    def get_selection(self):
+        return self.results_panel.get_selection()
+
+    def refresh_one_item(self, item):
+        self.results_panel.list.refresh_one_text(item)
+        self.results_gallery.refresh_one_thumbnail(item)
+
+    def OnPageChanged(self, evt):
+        sel = evt.GetSelection()
+        if sel == 1: # gallery page
+            self.results_gallery.SetThumbs(self.results_panel.list.filtered)
+
+    async def SubTreeFilterChanged(self, key, path):
+        list = self.results_panel.list
+        list.filter = path
+        list.refresh_filter()
+
+        if len(list.filtered) > 0:
+            list.Select(0, 1)
+            list.Focus(0)
+            self.pub.publish(Key("item_selected"), list.get_selection())
+
+        self.results_gallery.needs_update = True
+        if self.notebook.GetSelection() == 1:
+            self.results_gallery.SetThumbs(list.filtered)
+
+    async def search(self, query):
+        self.pub.publish(Key("item_selected"), [])
+        self.results = {}
+
+        try_load_image.cache_clear()
+
+        list = self.results_panel.list
+        list.DeleteAllItems()
+        list.Arrange(ultimatelistctrl.ULC_ALIGN_DEFAULT)
+
+        self.results = await self.app.api.get_loras(query)
+        list.set_results(self.results)
+
+        if len(list.filtered) > 0:
+            list.Select(0, 1)
+            list.Focus(0)
+            self.pub.publish(Key("item_selected"), list.get_selection())
+
+        self.results_gallery.needs_update = True
+        if self.notebook.GetSelection() == 1:
+            self.results_gallery.SetThumbs(list.filtered)
+
+    async def OnSearch(self, evt):
+        await self.app.frame.search(self.search_box.GetValue())

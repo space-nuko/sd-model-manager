@@ -3,6 +3,7 @@ import subprocess
 import re
 import io
 import aiopubsub
+import threading
 from typing import Callable
 
 import wx
@@ -12,6 +13,7 @@ import wx.lib.newevent
 from sd_model_manager.utils.common import find_image, try_load_image
 
 
+PROGRAM_ROOT = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
 PUBSUB_HUB = aiopubsub.Hub()
 
 
@@ -71,6 +73,12 @@ def combine_tag_freq(tags):
                 totals[tag] = 0
             totals[tag] += freq
     return totals
+
+def start_thread(func, *args):
+    thread = threading.Thread(target=func, args=args)
+    thread.setDaemon(True)
+    thread.start()
+    return thread
 
 class ColumnInfo:
     name: str

@@ -7,6 +7,7 @@ import wx.lib.newevent
 
 from sd_model_manager.prompt import infotext
 from gui import utils
+from gui.dialogs.generate_previews import GeneratePreviewsDialog
 
 
 class PopupMenuSeparator:
@@ -75,7 +76,7 @@ def copy_item_value(target, event, colmap, app):
 def copy_top_n_tags(tag_freq, app, n=None):
     totals = utils.combine_tag_freq(tag_freq)
     sort = list(sorted(totals.items(), key=lambda p: p[1], reverse=True))
-    tags = [p[1] for p in sort]
+    tags = [p[0] for p in sort]
     if n is not None:
         tags = tags[:n]
     s = ", ".join(tags)
@@ -88,6 +89,9 @@ def copy_to_clipboard(value, app=None):
 
         if app:
             app.frame.statusbar.SetStatusText(f"Copied: {utils.trim_string(value)}")
+
+def generate_previews(app):
+    app.frame.OnGeneratePreviews(None)
 
 def create_popup_menu_for_item(target, evt, app, colmap=None):
     tag_freq = target.get("tag_frequency")
@@ -108,12 +112,15 @@ def create_popup_menu_for_item(target, evt, app, colmap=None):
             image_tags = infotext.remove_metatags(image_tags)
             image_tags = ", ".join([t for t in image_tags])
 
-    icon_copy = utils.load_bitmap("images/icons/page_copy.png")
-    icon_folder_go = utils.load_bitmap("images/icons/folder_go.png")
+    icon_copy = utils.load_bitmap("images/icons/16/page_copy.png")
+    icon_folder_go = utils.load_bitmap("images/icons/16/folder_go.png")
+    icon_picture_add = utils.load_bitmap("images/icons/16/picture_add.png")
 
     items = [
         PopupMenuItem("Open Folder", open_folder, icon=icon_folder_go),
         PopupMenuItem("Copy Value", lambda t, e: copy_item_value(t, e, colmap, app)) if colmap is not None else None,
+        PopupMenuSeparator(),
+        PopupMenuItem("Generate Previews...", lambda t, e: generate_previews(app), icon=icon_picture_add),
         PopupMenuSeparator(),
         PopupMenuItem("Image Prompt", lambda t, e: copy_to_clipboard(image_prompt, app), enabled=image_prompt is not None, icon=icon_copy),
         PopupMenuItem("Image Tags", lambda t, e: copy_to_clipboard(image_tags, app), enabled=image_tags is not None, icon=icon_copy),

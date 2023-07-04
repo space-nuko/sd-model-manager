@@ -28,7 +28,7 @@ class SDModel(Base):
     type: Mapped[str]
 
     # last_modified = Column(DateTime, onupdate=func.utc_timestamp())
-    # last_embedded = Column(DateTime, nullable=True)
+    # last_embedded = Column(DateTime)
 
     root_path = Column(String)
     filepath = Column(String)
@@ -41,6 +41,7 @@ class SDModel(Base):
     version = Column(String, nullable=True)
     description = Column(String, nullable=True)
     rating = Column(Integer, nullable=True)
+    # pinned = Column(Boolean, nullable=True)
     tags = Column(String, nullable=True)
     notes = Column(String, nullable=True)
 

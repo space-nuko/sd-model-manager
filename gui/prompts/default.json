@@ -1,0 +1,108 @@
+{
+	"3": {
+		"class_type": "KSampler",
+		"inputs": {
+			"cfg": 8,
+			"denoise": 1,
+			"latent_image": [
+				"5",
+				0
+			],
+			"model": [
+				"10",
+				0
+			],
+			"negative": [
+				"7",
+				0
+			],
+			"positive": [
+				"6",
+				0
+			],
+			"sampler_name": "dpmpp_2m",
+			"scheduler": "karras",
+			"seed": 0,
+			"steps": 20
+		}
+	},
+	"4": {
+		"class_type": "CheckpointLoaderSimple",
+		"inputs": {
+			"ckpt_name": "v1-5-pruned-emaonly.ckpt"
+		}
+	},
+	"5": {
+		"class_type": "EmptyLatentImage",
+		"inputs": {
+			"batch_size": 1,
+			"height": 768,
+			"width": 512
+		}
+	},
+	"6": {
+		"class_type": "CLIPTextEncode",
+		"inputs": {
+			"clip": [
+				"10",
+				1
+			],
+			"text": "masterpiece best quality girl"
+		}
+	},
+	"7": {
+		"class_type": "CLIPTextEncode",
+		"inputs": {
+			"clip": [
+				"10",
+				1
+			],
+			"text": "bad hands"
+		}
+	},
+	"8": {
+		"class_type": "VAEDecode",
+		"inputs": {
+			"samples": [
+				"3",
+				0
+			],
+			"vae": [
+				"11",
+				0
+			]
+		}
+	},
+	"9": {
+		"class_type": "SaveImage",
+		"inputs": {
+			"filename_prefix": "ComfyUI",
+			"images": [
+				"8",
+				0
+			]
+		}
+	},
+	"10": {
+		"class_type": "LoraLoader",
+		"inputs": {
+			"lora_name": "",
+			"strength_model": 1.0,
+			"strength_clip": 1.0,
+			"model": [
+				"4",
+				0
+			],
+			"clip": [
+				"4",
+				1
+			]
+		}
+	},
+	"11": {
+		"class_type": "VAELoader",
+		"inputs": {
+			"vae_name": "animefull-latest.vae.pt"
+		}
+	}
+}

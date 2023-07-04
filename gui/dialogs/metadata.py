@@ -92,6 +92,7 @@ METADATA_ORDER = [
     "sd_scripts_commit_hash",
 ]
 
+
 class MetadataList(ultimatelistctrl.UltimateListCtrl):
     def __init__(self, parent, item, app=None):
         super().__init__(parent=parent, id=wx.ID_ANY, agwStyle=ultimatelistctrl.ULC_VIRTUAL|ultimatelistctrl.ULC_REPORT|wx.LC_HRULES|wx.LC_VRULES)

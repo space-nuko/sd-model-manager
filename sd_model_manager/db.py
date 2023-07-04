@@ -180,6 +180,7 @@ class DB:
                         root_path=path,
                         filepath=os.path.relpath(f, path),
                         filename=os.path.basename(f),
+                        last_embedded=datetime.min,
                         display_name=metadata.get("ssmd_display_name", None),
                         author=metadata.get("ssmd_author", None),
                         source=metadata.get("ssmd_source", None),
