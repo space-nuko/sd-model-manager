@@ -1,3 +1,10 @@
+if __name__ == "__main__":
+    import os
+    import sys
+
+    path = os.path.realpath(os.path.join(os.path.abspath(__file__), "../.."))
+    sys.path.append(path)
+
 import re
 from typing import Optional, Pattern
 from sqlalchemy import create_engine, func, select, not_, or_, and_, nulls_last, exists
@@ -25,6 +32,7 @@ class AbstractCriteria:
 class StringCriteria(AbstractCriteria):
     def __init__(self, prefix, column, exact=False):
         self.re = re.compile(rf'(^| +)(-)?{prefix}:("([^"]+)"|(\S+))', re.I)
+        self.prefix = prefix
         self.column = column
         self.exact = exact
 
@@ -42,9 +50,10 @@ class StringCriteria(AbstractCriteria):
 
 class NumberCriteria(AbstractCriteria):
     def __init__(self, prefix, column, type):
-        self.re = re.compile(
-            rf"(^| +)(-)?{prefix}:(==|!=|>|<|>=|<=)?(\d+(?:\.\d+)?)", re.I
+        self.re = (
+            re.compile(rf"(^| +)(-)?{prefix}:(==|!=|>|<|>=|<=)?(\d+(?:\.\d+)?)", re.I),
         )
+        self.prefix = prefix
         self.column = column
         self.type = type
 
@@ -79,6 +88,7 @@ class NumberCriteria(AbstractCriteria):
 class HasCriteria(AbstractCriteria):
     def __init__(self, suffix, column, compare="", count=False):
         self.re = re.compile(rf"(^| +)(-)?has:{suffix}", re.I)
+        self.suffix = suffix
         self.column = column
         self.compare = ""
         self.count = count
@@ -97,6 +107,7 @@ class HasCriteria(AbstractCriteria):
 class OrderByCriteria(AbstractCriteria):
     def __init__(self, suffix, column, reversed=None, default=""):
         self.re = re.compile(rf"(^| +)order(:reverse)?:{suffix}", re.I)
+        self.suffix = suffix
         self.column = column
         self.reversed = reversed or False
         if reversed is None:
@@ -224,3 +235,67 @@ def build_search_query(orm_query, query_string):
         orm_query, query_string = criteria.apply(orm_query, query_string)
 
     return orm_query
+
+
+def build_readme_text():
+    string_criteria = [c for c in ALL_CRITERIA if isinstance(c, StringCriteria)]
+    string_criteria_pts = "\n".join([f"- `{c.prefix}:*`" for c in string_criteria])
+    number_criteria = [c for c in ALL_CRITERIA if isinstance(c, NumberCriteria)]
+    number_criteria_pts = "\n".join([f"- `{c.prefix}:*`" for c in number_criteria])
+    has_criteria = [c for c in ALL_CRITERIA if isinstance(c, HasCriteria)]
+    has_criteria_pts = "\n".join([f"- `has:{c.suffix}`" for c in has_criteria])
+    sort_criteria = [c for c in ALL_CRITERIA if isinstance(c, OrderByCriteria)]
+    sort_criteria_pts = "\n".join([f"- `order:{c.suffix}`" for c in sort_criteria])
+
+    return f"""
+## Search Query Syntax
+
+When using a `query` parameter to search for models, you can use some special syntax to filter your results:
+
+### Basic Searches
+
+An unqualified search term like `some text` will search for the text in the model's name or filepath.
+
+You can search by a fuzzy value with qualifiers like `id:123` or `name:"detailed lighting"`.
+
+Additionally, for numeric queries you can use comparison operators like `rating:>=7`. List of operators:
+
+- `==`
+- `!=`
+- `>`
+- `<`
+- `>=`
+- `<=`
+
+Any search qualifier can be negated by prepending `-` to the front: `-name:"bad quality"`
+
+Some criteria can also be used with the `has:` qualifier to check for existence of the field: `has:image`
+
+### List of Qualifiers
+
+#### Strings:
+
+{string_criteria_pts}
+
+#### Numbers:
+
+{number_criteria_pts}
+
+#### Has:
+
+{has_criteria_pts}
+
+### Ordering
+
+You can sort the results returned from the database with the `order:` qualifier: `order:rating`
+
+To reverse the order, do this: `order:reverse:dim`
+
+### List of Ordering Types
+
+{sort_criteria_pts}
+"""
+
+
+if __name__ == "__main__":
+    print(build_readme_text())

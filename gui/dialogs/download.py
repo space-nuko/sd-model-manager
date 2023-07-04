@@ -330,9 +330,7 @@ class PreviewGeneratorDialog(wx.Dialog):
 
             upscaled = self.upscaled
             self.autogen = True
-            data = self.last_data
             for item in self.items[1:]:
-                data.lora_name = self.get_lora_name(item)
                 self.spinner_seed.SetValue(self.last_seed)
                 e = Event()
                 thread = self.start_prompt(item, e=e)
@@ -353,6 +351,8 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.AsyncEndModal(wx.ID_CANCEL)
 
     async def OnClose(self, evt):
+        if self.autogen:
+            return
         await on_close(self, evt)
 
     def OnRegenerate(self, evt):
@@ -522,7 +522,7 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.result = None
         self.last_data = None
         self.upscaled = False
-        self.image_panel.Clear()
+        # self.image_panel.Clear()
         self.button_regenerate.Disable()
         self.button_upscale.Disable()
         self.button_ok.Disable()

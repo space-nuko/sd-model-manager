@@ -55,6 +55,132 @@ python client.py --mode comfyui
 
 All API routes will be moved under a `models/` namespace, like `http://localhost:8188/models/api/v1/loras`.
 
+## Search Query Syntax
+
+When using a `query` parameter to search for models, you can use some special syntax to filter your results:
+
+### Basic Searches
+An unqualified search term like `some text` will search for the text in the model's name or filepath.
+
+You can search by a fuzzy value with qualifiers like `id:123` or `name:"detailed lighting"`.
+
+Additionally, for numeric queries you can use comparison operators like `rating:>=7`. The full list of operators:
+
+- `==`
+- `!=`
+- `>`
+- `<`
+- `>=`
+- `<=`
+
+Any search qualifier can be negated by prepending `-` to the front: `-name:"bad quality"`
+
+Some criteria can also be used with the `has:` qualifier to check for existence of the field: `has:image`
+
+### List of Qualifiers
+
+#### Strings:
+
+- `root_path:*`
+- `filepath:*`
+- `filename:*`
+- `name:*`
+- `author:*`
+- `source:*`
+- `keywords:*`
+- `description:*`
+- `tags:*`
+- `tag:*`
+- `notes:*`
+- `network_module:*`
+- `module_name:*`
+- `module:*`
+- `network_dim:*`
+- `dim:*`
+- `network_alpha:*`
+- `alpha:*`
+- `model_hash:*`
+- `hash:*`
+- `legacy_hash:*`
+
+#### Numbers:
+
+- `id:*`
+- `rating:*`
+- `unique_tags:*`
+- `num_epochs:*`
+- `epochs:*`
+- `epoch:*`
+- `session_id:*`
+- `resolution:*`
+- `keep_tokens:*`
+- `learning_rate:*`
+- `lr:*`
+- `text_encoder_lr:*`
+- `tenc_lr:*`
+- `unet_lr:*`
+- `noise_offset:*`
+- `num_train_images:*`
+- `train_images:*`
+- `num_reg_images:*`
+- `reg_images:*`
+
+#### Has:
+
+- `has:name`
+- `has:version`
+- `has:author`
+- `has:source`
+- `has:keywords`
+- `has:negative_keywords`
+- `has:description`
+- `has:tags`
+- `has:rating`
+- `has:image`
+- `has:preview_image`
+- `has:vae`
+- `has:tag_frequency`
+- `has:dataset_dirs`
+- `has:reg_dataset_dirs`
+- `has:network_args`
+- `has:noise_offset`
+- `has:keep_tokens`
+
+### Ordering
+
+You can sort the results returned from the database with the `order:` qualifier: `order:rating`
+
+To reverse the order: `order:reverse:dim`
+
+### List of Ordering Types
+
+- `order:id`
+- `order:root_path`
+- `order:filepath`
+- `order:filename`
+- `order:name`
+- `order:version`
+- `order:author`
+- `order:source`
+- `order:keywords`
+- `order:negative_keywords`
+- `order:description`
+- `order:tags`
+- `order:rating`
+- `order:notes`
+- `order:network_dim`
+- `order:dim`
+- `order:network_alpha`
+- `order:alpha`
+- `order:resolution`
+- `order:unique_tags`
+- `order:keep_tokens`
+- `order:noise_offset`
+- `order:num_train_images`
+- `order:train_images`
+- `order:num_reg_images`
+- `order:reg_images`
+
 ## API Reference
 
 The following examples assume standalone mode with the default configuration (port `7779`).
