@@ -52,7 +52,9 @@ class RatingCtrl(wx.ScrolledCanvas):
         self.Refresh()
 
     def DoGetBestSize(self):
-        return wx.Size((4 + (5 * (self.style * 2)) + ICON_SIZE - 3, (self.style * 2) + ICON_SIZE))
+        return wx.Size(
+            (4 + (5 * (self.style * 2)) + ICON_SIZE - 3, (self.style * 2) + ICON_SIZE)
+        )
 
     def OnPaint(self, event):
         dc = wx.PaintDC(self)
@@ -78,7 +80,7 @@ class RatingCtrl(wx.ScrolledCanvas):
             self.rating = 0
         else:
             w = (self.style * 2) + ICON_SIZE
-            if (event.GetX() < 3):
+            if event.GetX() < 3:
                 self.rating = 0
             else:
                 self.rating = int(min(10, (max(0, (event.GetX() - 3) * 2) / w + 1)))

@@ -20,19 +20,22 @@ PUBSUB_HUB = aiopubsub.Hub()
 def trim_string(s, n=200):
     return (s[:n] + "...") if len(s) > n else s
 
+
 def open_on_file(path):
     path = os.path.realpath(path)
 
-    if os.name == 'nt':
-        explorer = os.path.join(os.getenv('WINDIR'), 'explorer.exe')
-        subprocess.run([explorer, '/select,', path])
+    if os.name == "nt":
+        explorer = os.path.join(os.getenv("WINDIR"), "explorer.exe")
+        subprocess.run([explorer, "/select,", path])
     else:
         os.startfile(os.path.dirname(path))
+
 
 def load_bitmap(path):
     with open(path, "rb") as f:
         img = wx.Image(io.BytesIO(f.read()), type=wx.BITMAP_TYPE_ANY, index=-1)
         return wx.Bitmap(img, depth=wx.BITMAP_SCREEN_DEPTH)
+
 
 def find_image_for_model(item):
     image = None
@@ -52,6 +55,7 @@ def find_image_for_model(item):
 
     return image, image_path
 
+
 def find_image_path_for_model(item):
     image_path = None
 
@@ -65,6 +69,7 @@ def find_image_path_for_model(item):
     _, image_path = find_image(filepath, load=False)
     return image_path
 
+
 def combine_tag_freq(tags):
     totals = {}
     for folder, freqs in tags.items():
@@ -74,11 +79,13 @@ def combine_tag_freq(tags):
             totals[tag] += freq
     return totals
 
+
 def start_thread(func, *args):
     thread = threading.Thread(target=func, args=args)
     thread.setDaemon(True)
     thread.start()
     return thread
+
 
 class ColumnInfo:
     name: str
@@ -95,14 +102,15 @@ class ColumnInfo:
 
         self.is_visible = is_visible
 
+
 def format_rating(rating):
     if rating is None or rating <= 0:
         return ""
     rating = min(10, max(0, int(rating)))
-    return u'\u2605'*int(rating/2) + u'\u00BD'*int(rating%2!=0)
+    return "\u2605" * int(rating / 2) + "\u00BD" * int(rating % 2 != 0)
 
 
-re_optimizer = re.compile(r'([^.]+)(\(.*\))?$')
+re_optimizer = re.compile(r"([^.]+)(\(.*\))?$")
 
 
 def format_optimizer(m):
@@ -144,17 +152,19 @@ def format_network_alpha(v):
         except Exception:
             return v
 
+
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
-    ColumnInfo("Has Image", lambda m: "★" if len(m["preview_images"] or []) > 0 else "", width=20),
+    ColumnInfo(
+        "Has Image",
+        lambda m: "★" if len(m["preview_images"] or []) > 0 else "",
+        width=20,
+    ),
     ColumnInfo("Filename", lambda m: os.path.basename(m["filepath"]), width=240),
-
     ColumnInfo("Module", lambda m: m["module_name"], width=60),
-
     ColumnInfo("Name", lambda m: m["display_name"], is_meta=True, width=100),
     ColumnInfo("Author", lambda m: m["author"], is_meta=True, width=100),
     ColumnInfo("Rating", lambda m: format_rating(m["rating"]), is_meta=True, width=60),
-
     ColumnInfo("Dim.", lambda m: format_network_alpha(m["network_dim"]), width=60),
     ColumnInfo("Alpha", lambda m: format_network_alpha(m["network_alpha"]), width=60),
     ColumnInfo("Resolution", lambda m: m["resolution_width"]),
@@ -173,11 +183,19 @@ COLUMNS = [
     ColumnInfo("Total Batch Size", lambda m: m["total_batch_size"]),
     ColumnInfo("Keep Tokens", lambda m: m["keep_tokens"]),
     ColumnInfo("Noise Offset", lambda m: m["noise_offset"]),
-    ColumnInfo("Training Comment", lambda m: m["training_comment"], width=140, is_visible=False),
-
+    ColumnInfo(
+        "Training Comment", lambda m: m["training_comment"], width=140, is_visible=False
+    ),
     ColumnInfo("Tags", lambda m: m["tags"], is_meta=True, width=140),
-    ColumnInfo("Keywords", lambda m: m["keywords"], is_meta=True, width=140, is_visible=False),
-    ColumnInfo("Source", lambda m: m["source"], is_meta=True, width=100, is_visible=False),
-
-    ColumnInfo("Filepath", lambda m: os.path.normpath(os.path.join(m["root_path"], m["filepath"])), width=600),
+    ColumnInfo(
+        "Keywords", lambda m: m["keywords"], is_meta=True, width=140, is_visible=False
+    ),
+    ColumnInfo(
+        "Source", lambda m: m["source"], is_meta=True, width=100, is_visible=False
+    ),
+    ColumnInfo(
+        "Filepath",
+        lambda m: os.path.normpath(os.path.join(m["root_path"], m["filepath"])),
+        width=600,
+    ),
 ]

@@ -11,9 +11,7 @@ pip_list = "pip list -o --format=freeze"
 
 def upgrade_requirements() -> None:
     warning_message = False
-    req_files = [
-        req_file for req_file in req_dir.iterdir() if req_file.is_file()
-    ]
+    req_files = [req_file for req_file in req_dir.iterdir() if req_file.is_file()]
 
     for req_file in req_files:
         with req_file.open() as f:
@@ -34,7 +32,7 @@ def upgrade_requirements() -> None:
             new_req = old_req
             for name, version in packages.items():
                 new_req = re.sub(
-                    fr"{name}==[\d .]*",
+                    rf"{name}==[\d .]*",
                     f"{name}=={version}",
                     new_req,
                 )

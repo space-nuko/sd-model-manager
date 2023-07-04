@@ -19,12 +19,16 @@ class PreviewImagePanel(wx.Panel):
         self.image_view = ImagePanel(self, style=wx.SUNKEN_BORDER)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.image_view, 1, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.image_view, 1, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
 
         self.SetSizerAndFit(self.sizer)
 
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
+        self.sub.add_async_listener(
+            Key("events", "item_selected"), self.SubItemSelected
+        )
 
     async def SubItemSelected(self, key, items):
         image = None

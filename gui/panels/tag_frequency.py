@@ -88,10 +88,14 @@ class TagFrequencyList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
         else:
             self.sortReverse = col == 1
         self.sortColumn = col
+
         def sort(index):
             cols = self.itemDataMap[index]
             return cols[col]
-        self.itemIndexMap = list(sorted(self.itemIndexMap, key=sort, reverse=self.sortReverse))
+
+        self.itemIndexMap = list(
+            sorted(self.itemIndexMap, key=sort, reverse=self.sortReverse)
+        )
 
         # redraw the list
         self.Refresh()
@@ -106,10 +110,17 @@ class TagFrequencyPanel(wx.Panel):
 
         wx.Panel.__init__(self, *args, **kwargs)
 
-        self.list = TagFrequencyList(self, id=wx.ID_ANY, style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES, app=app)
+        self.list = TagFrequencyList(
+            self,
+            id=wx.ID_ANY,
+            style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES,
+            app=app,
+        )
 
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
+        self.sub.add_async_listener(
+            Key("events", "item_selected"), self.SubItemSelected
+        )
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.list, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)

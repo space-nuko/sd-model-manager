@@ -1,6 +1,7 @@
 import simplejson
 from sqlalchemy import TypeDecorator, types
 
+
 class JSON(TypeDecorator):
     @property
     def python_type(self):

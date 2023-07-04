@@ -30,7 +30,8 @@
 """
 
 import wx
-#import wx.lib.mixins.inspection
+
+# import wx.lib.mixins.inspection
 
 
 import wx.lib.scrolledpanel as scrolled
@@ -47,11 +48,14 @@ class ImagePanel(wx.Panel):
         Clear()          clear the displayed image
     """
 
-    def __init__(self, parent, id=wx.ID_ANY,
-                 pos=wx.DefaultPosition,
-                 size=wx.DefaultSize,
-                 style=wx.SUNKEN_BORDER
-                 ):
+    def __init__(
+        self,
+        parent,
+        id=wx.ID_ANY,
+        pos=wx.DefaultPosition,
+        size=wx.DefaultSize,
+        style=wx.SUNKEN_BORDER,
+    ):
 
         super().__init__(parent, id, pos, size, style=style)
 
@@ -61,9 +65,9 @@ class ImagePanel(wx.Panel):
         self.SetSizer(self.sizer)
 
         self.bitmap = None  # loaded image in bitmap format
-        self.image = None   # loaded image in image format
+        self.image = None  # loaded image in image format
         self.aspect = None  # loaded image aspect ratio
-        self.zoom = 1.0     # zoom factor
+        self.zoom = 1.0  # zoom factor
 
         self.blank = wx.Bitmap(1, 1)
 
@@ -150,5 +154,5 @@ if __name__ == "__main__":
     panel = ImagePanel(frame)
     frame.SetSize(800, 625)
     frame.Show()
-    panel.Load('D:\\test.jpg')
+    panel.Load("D:\\test.jpg")
     app.MainLoop()

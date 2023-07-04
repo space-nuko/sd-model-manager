@@ -1,5 +1,22 @@
-from sqlalchemy.orm import relationship, sessionmaker, declarative_base, Mapped, mapped_column
-from sqlalchemy import func, Column, Integer, String, Boolean, DateTime, ForeignKey, Integer, LargeBinary, Numeric
+from sqlalchemy.orm import (
+    relationship,
+    sessionmaker,
+    declarative_base,
+    Mapped,
+    mapped_column,
+)
+from sqlalchemy import (
+    func,
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    Numeric,
+)
 from marshmallow import fields
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from .utils import JSON

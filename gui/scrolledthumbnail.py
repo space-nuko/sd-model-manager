@@ -169,9 +169,9 @@ Version 1.0
 
 """
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Beginning Of ThumbnailCtrl wxPython Code
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 import os
 import wx
@@ -203,11 +203,11 @@ def load_image(filepath, half=False):
     return wx.Bitmap.FromBufferRGBA(width, height, image.tobytes())
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Get Default Icon/Data
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 file_broken = PyEmbeddedImage(
     b"iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAAK/INwWK6QAADU9J"
     b"REFUeJzNWn1QE2cefja7yRI+lAKiAgKCVIqegUYMFMsM4kfvzk7nmFrnvHGcOT3bq3P/OJ1p"
@@ -273,14 +273,15 @@ file_broken = PyEmbeddedImage(
     b"mpqa4YqKCtHtmzAN8oCM9wJKpRIRERGyyAQi6CvwyeokRcFsNqOurm64oqLijMVimZbbT2pb"
     b"6gJN04TNZlNZLBYwDOOeEgNtMsqpF+y1sbEx1NbWDn/wwQdhJQ8AkmZYsWJFVEZGxtZ79+49"
     b"wbIsDa/VlBQJqS0of6QD3UMQBHp7e++YTKYrCIPbe8KfHyoALACwGIAqXA8MEQImPnO7A2Ak"
-    b"nA3/D+/OyD/Ur3BPAAAAAElFTkSuQmCC")
+    b"nA3/D+/OyD/Ur3BPAAAAAElFTkSuQmCC"
+)
 
 
 def getDataSH():
-    """ Return the first part of the shadow dropped behind thumbnails. """
+    """Return the first part of the shadow dropped behind thumbnails."""
 
     return zlib.decompress(
-b'x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2_A\x98\x83\rHvl\
+        b'x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2_A\x98\x83\rHvl\
 \xdc\x9c\n\xa4X\x8a\x9d<C8\x80\xa0\x86#\xa5\x83\x81\x81y\x96\xa7\x8bcH\xc5\
 \x9c\xb7\xd7\xd7\xf6\x85D2\xb4^\xbc\x1b\xd0\xd0p\xa6\x85\x9d\xa1\xf1\xc0\xc7\
 \x7f\xef\x8d\x98\xf89_:p]\xaew\x0c\xe9\x16[\xbc\x8bSt\xdf\x9aT\xad\xef\xcb\
@@ -295,35 +296,38 @@ Y\xcb\xbd\x8b\xdfs\xe3[\xd6\xed\xe5\x9b}\x99\xe6=:\xbd\xed\xfc\xedu|\xfcq\
 \x9e?\xf7\xfb+\xb7\xfdnLN\xf5\xc6\xb7g\xfd\xca_\x9a\x7f?\x7f\xe0\xfe\xe3\xaa\
 \xe5\x0b\xf4\xb7\xcb\xea\x97\xed\n\xb7\xbf\xff\xadh\xf9\xe3\x1d\xd5f\x7fb\
 \xdf\x95Y\x15\xc6\xe7\xee\xfe\xcbz7Y\xbd\xde[\xf3y\x1f0\xd72x\xba\xfa\xb9\
-\xacsJh\x02\x00\xc4i\x8dN' )
+\xacsJh\x02\x00\xc4i\x8dN'
+    )
 
 
 def getDataBL():
-    """ Return the second part of the shadow dropped behind thumbnails. """
+    """Return the second part of the shadow dropped behind thumbnails."""
 
     return zlib.decompress(
-b"x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2\xac \xcc\xc1\
+        b"x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2\xac \xcc\xc1\
 \x06${\xf3\xd5\x9e\x02)\x96b'\xcf\x10\x0e \xa8\xe1H\xe9\x00\xf2\xed=]\x1cC8f\
 \xea\x9e\xde\xcb\xd9` \xc2\xf0P\xdf~\xc9y\xaeu\x0f\xfe1\xdf\xcc\x14\x1482A\
 \xe9\xfd\x83\x1d\xaf\x84\xac\xf8\xe6\\\x8c3\xfc\x98\xf8\xa0\xb1\xa9K\xec\x9f\
 \xc4\xd1\xb4GG{\xb5\x15\x8f_|t\x8a[a\x1fWzG\xa9\xc4,\xa0Q\x0c\x9e\xae~.\xeb\
-\x9c\x12\x9a\x00\x7f1,7" )
+\x9c\x12\x9a\x00\x7f1,7"
+    )
 
 
 def getDataTR():
-    """ Return the third part of the shadow dropped behind thumbnails. """
+    """Return the third part of the shadow dropped behind thumbnails."""
 
     return zlib.decompress(
-b'x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2\xac \xcc\xc1\
-\x06${\xf3\xd5\x9e\x02)\x96b\'\xcf\x10\x0e \xa8\xe1H\xe9\x00\xf2m=]\x1cC8f\
+        b"x\xda\xeb\x0c\xf0s\xe7\xe5\x92\xe2b``\xe0\xf5\xf4p\t\x02\xd2\xac \xcc\xc1\
+\x06${\xf3\xd5\x9e\x02)\x96b'\xcf\x10\x0e \xa8\xe1H\xe9\x00\xf2m=]\x1cC8f\
 \xe6\x9e\xd9\xc8\xd9` \xc2p\x91\xbd\xaei\xeeL\x85\xdcUo\xf6\xf7\xd6\xb2\x88\
 \x0bp\x9a\x89i\x16=-\x94\xe16\x93\xb9!\xb8y\xcd\t\x0f\x89\n\xe6\xb7\xfcV~6\
 \x8dFo\xf5\xee\xc8\x1fOaw\xc9\x88\x0c\x16\x05\x1a\xc4\xe0\xe9\xea\xe7\xb2\
-\xce)\xa1\t\x00"\xf9$\x83' )
+\xce)\xa1\t\x00\"\xf9$\x83"
+    )
 
 
 def getShadow():
-    """ Creates a shadow behind every thumbnail. """
+    """Creates a shadow behind every thumbnail."""
 
     sh_tr = wx.Image(six.BytesIO(getDataTR())).ConvertToBitmap()
     sh_bl = wx.Image(six.BytesIO(getDataBL())).ConvertToBitmap()
@@ -331,9 +335,10 @@ def getShadow():
     return (sh_tr, sh_bl, sh_sh.ConvertToBitmap())
 
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # PATH & FILE FILLING (OS INDEPENDENT)
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
 
 def opj(path):
     """
@@ -342,14 +347,15 @@ def opj(path):
     :param `path`: the path to convert.
     """
 
-    strs = os.path.join(*tuple(path.split('/')))
+    strs = os.path.join(*tuple(path.split("/")))
     # HACK: on Linux, a leading / gets lost...
-    if path.startswith('/'):
-        strs = '/' + strs
+    if path.startswith("/"):
+        strs = "/" + strs
 
     return strs
 
-#-----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 
 # Different Outline On Thumb Selection:
 # THUMB_OUTLINE_NONE: No Outline Drawn On Selection
@@ -382,9 +388,9 @@ wxEVT_THUMBNAILS_CAPTION_CHANGED = wx.NewEventType()
 wxEVT_THUMBNAILS_THUMB_CHANGED = wx.NewEventType()
 wxEVT_THUMBNAILS_CHAR = wx.NewEventType()
 
-#-----------------------------------#
+# -----------------------------------#
 #        ThumbnailCtrlEvent
-#-----------------------------------#
+# -----------------------------------#
 
 EVT_THUMBNAILS_SEL_CHANGED = wx.PyEventBinder(wxEVT_THUMBNAILS_SEL_CHANGED, 1)
 """ The user has changed the selected thumbnail. """
@@ -401,6 +407,7 @@ EVT_THUMBNAILS_CHAR = wx.PyEventBinder(wxEVT_THUMBNAILS_CHAR, 1)
 # ---------------------------------------------------------------------------- #
 # Class PILImageHandler, handles loading and highlighting images with PIL
 # ---------------------------------------------------------------------------- #
+
 
 class PILImageHandler(object):
     """
@@ -423,13 +430,14 @@ class PILImageHandler(object):
 
         except ImportError:
 
-            errstr = ("\nThumbnailCtrl *requires* PIL (Python Imaging Library).\n"
-                      "You can get it at:\n\n"
-                      "http://www.pythonware.com/products/pil/\n\n"
-                      "ThumbnailCtrl can not continue. Exiting...\n")
+            errstr = (
+                "\nThumbnailCtrl *requires* PIL (Python Imaging Library).\n"
+                "You can get it at:\n\n"
+                "http://www.pythonware.com/products/pil/\n\n"
+                "ThumbnailCtrl can not continue. Exiting...\n"
+            )
 
             raise Exception(errstr)
-
 
     def Load(self, filename):
         """
@@ -459,7 +467,6 @@ class PILImageHandler(object):
 
         return img, originalsize, alpha
 
-
     def HighlightImage(self, img, factor):
         """
         Adjust overall image brightness to highlight.
@@ -471,11 +478,11 @@ class PILImageHandler(object):
         import PIL.Image as Image
         import PIL.ImageEnhance as ImageEnhance
 
-        pil = Image.new('RGB', (img.GetWidth(), img.GetHeight()))
+        pil = Image.new("RGB", (img.GetWidth(), img.GetHeight()))
         pil.frombytes(bytes(img.GetData()))
         enh = ImageEnhance.Brightness(pil)
         enh = enh.enhance(1.5)
-        img.SetData(enh.convert('RGB').tobytes())
+        img.SetData(enh.convert("RGB").tobytes())
         return img
 
     def Rotate(self, img, angle):
@@ -490,9 +497,11 @@ class PILImageHandler(object):
         img = img.Rotate(radians(angle), (img.GetWidth(), img.GetHeight()), True)
         return img
 
+
 # ---------------------------------------------------------------------------- #
 # Class NativeImageHandler, handles loading and highlighting images with wx
 # ---------------------------------------------------------------------------- #
+
 
 class NativeImageHandler(object):
     """
@@ -521,7 +530,6 @@ class NativeImageHandler(object):
 
         return img, originalsize, alpha
 
-
     def HighlightImage(self, img, factor):
         """
         Adjust overall image brightness to highlight.
@@ -531,7 +539,6 @@ class NativeImageHandler(object):
         """
 
         return img.AdjustChannels(factor, factor, factor, factor)
-
 
     def Rotate(self, img, angle):
         """
@@ -551,6 +558,7 @@ class NativeImageHandler(object):
 # Auxiliary Class, To Handle Single Thumb Information For Every Thumb.
 # ---------------------------------------------------------------------------- #
 
+
 class Thumb(object):
     """
     This is an auxiliary class, to handle single thumbnail information for every thumb.
@@ -558,7 +566,16 @@ class Thumb(object):
     Used internally.
     """
 
-    def __init__(self, folder, filename, caption="", size=0, lastmod=0, imagehandler=None, data=None):
+    def __init__(
+        self,
+        folder,
+        filename,
+        caption="",
+        size=0,
+        lastmod=0,
+        imagehandler=None,
+        data=None,
+    ):
         """
         Default class constructor.
 
@@ -583,7 +600,6 @@ class Thumb(object):
         self._bitmap = None
         self._data = data
 
-
     def SetCaption(self, caption=""):
         """
         Sets the thumbnail caption.
@@ -594,12 +610,10 @@ class Thumb(object):
         self._caption = caption
         self._captionbreaks = []
 
-
     def GetImage(self):
-        """ Returns the thumbnail image. """
+        """Returns the thumbnail image."""
 
         return self._image
-
 
     def SetImage(self, image):
         """
@@ -610,12 +624,10 @@ class Thumb(object):
 
         self._image = image
 
-
     def GetFileName(self):
-        """ Returns the file name associated with this thumbnail. """
+        """Returns the file name associated with this thumbnail."""
 
         return self._filename
-
 
     def SetFileName(self, filename):
         """
@@ -626,12 +638,10 @@ class Thumb(object):
 
         self._filename = filename
 
-
     def GetId(self):
-        """ Returns the thumbnail identifier. """
+        """Returns the thumbnail identifier."""
 
         return self._id
-
 
     def SetId(self, id=-1):
         """
@@ -642,14 +652,11 @@ class Thumb(object):
 
         self._id = id
 
-
     def GetData(self):
         return self._data
 
-
     def SetData(self, data):
         self._data = data
-
 
     def GetThumbnail(self, width, height):
         """
@@ -662,12 +669,12 @@ class Thumb(object):
         img = self._image
         imgwidth, imgheight = (img.GetWidth(), img.GetHeight())
         if width < imgwidth or height < imgheight:
-            scale = float(width)/imgwidth
+            scale = float(width) / imgwidth
 
-            if scale > float(height)/imgheight:
-                scale = float(height)/imgheight
+            if scale > float(height) / imgheight:
+                scale = float(height) / imgheight
 
-            newW, newH = int(imgwidth*scale), int(imgheight*scale)
+            newW, newH = int(imgwidth * scale), int(imgheight * scale)
             if newW < 1:
                 newW = 1
             if newH < 1:
@@ -676,7 +683,6 @@ class Thumb(object):
             img = img.Scale(newW, newH)
 
         return img
-
 
     def GetBitmap(self, width, height):
         """
@@ -695,12 +701,10 @@ class Thumb(object):
 
         return bmp
 
-
     def GetFullFileName(self):
-        """ Returns the full filename of the thumbnail. """
+        """Returns the full filename of the thumbnail."""
 
         return os.path.join(self._dir, self._filename)
-
 
     def GetCaption(self, line):
         """
@@ -717,50 +721,43 @@ class Thumb(object):
 
         return strs
 
-
     def GetFileSize(self):
-        """ Returns the file size in bytes associated to a thumbnail. """
+        """Returns the file size in bytes associated to a thumbnail."""
 
         return self._filesize
 
-
     def GetDisplayFileSize(self):
-        """ Return printable file size (with bytes, Kb, Mb suffix). """
+        """Return printable file size (with bytes, Kb, Mb suffix)."""
 
         size = self.GetFileSize()
         if size < 1000:
             size = str(size) + " bytes"
         elif size < 1000000:
-            size = str(int(round(size/1000.0))) + " Kb"
+            size = str(int(round(size / 1000.0))) + " Kb"
         else:
-            size = str(round(size/1000000.0, 2)) + " Mb"
+            size = str(round(size / 1000000.0, 2)) + " Mb"
         return size
 
-
     def GetCreationDate(self):
-        """ Returns the file last modification date associated to a thumbnail. """
+        """Returns the file last modification date associated to a thumbnail."""
 
         return self._lastmod
 
-
     def GetDisplayCreationDate(self):
-        """ Returns the file last modification date associated to a thumbnail. """
+        """Returns the file last modification date associated to a thumbnail."""
 
         return str(datetime.fromtimestamp(self.GetCreationDate()))
 
-
     def GetOriginalSize(self):
-        """ Returns a tuple containing the original image width and height, in pixels. """
+        """Returns a tuple containing the original image width and height, in pixels."""
 
         return self._originalsize
 
-
     def GetDisplayOriginalSize(self):
-        """ Returns a tuple containing the original image width and height, in pixels. """
+        """Returns a tuple containing the original image width and height, in pixels."""
 
         s = self.GetOriginalSize()
         return f"{s[0]}x{s[1]}"
-
 
     def GetCaptionLinesCount(self, width):
         """
@@ -771,7 +768,6 @@ class Thumb(object):
 
         self.BreakCaption(width)
         return len(self._captionbreaks) - 1
-
 
     def BreakCaption(self, width):
         """
@@ -788,7 +784,7 @@ class Thumb(object):
         if len(self._caption) == 0:
             return
 
-        pos = width//16
+        pos = width // 16
         beg = 0
         end = 0
 
@@ -803,9 +799,9 @@ class Thumb(object):
                 self._captionbreaks.append(len(self._caption))
                 break
 
-            sw, sh = dc.GetTextExtent(self._caption[beg:pos-beg])
+            sw, sh = dc.GetTextExtent(self._caption[beg : pos - beg])
 
-            if  sw > width:
+            if sw > width:
 
                 if end > 0:
 
@@ -817,38 +813,42 @@ class Thumb(object):
                     self._captionbreaks.append(pos)
                     beg = pos
 
-                pos = beg + width//16
+                pos = beg + width // 16
                 end = 0
 
-            if pos < len(self._caption) and self._caption[pos] in [" ", "-", ",", ".", "_"]:
+            if pos < len(self._caption) and self._caption[pos] in [
+                " ",
+                "-",
+                ",",
+                ".",
+                "_",
+            ]:
                 end = pos + 1
 
             pos = pos + 1
 
-
         dc.SelectObject(wx.NullBitmap)
 
-
     def GetInfo(self):
-        """ Returns info for thumbnain in display format. """
-        thumbinfo = "Name: " + self.GetFileName() + "\n" \
-                    "Size: " + self.GetDisplayFileSize() + "\n" \
-                    "Modified: " + self.GetDisplayCreationDate() + "\n" \
-                    "Dimensions: " + self.GetDisplayOriginalSize() + "\n"
+        """Returns info for thumbnain in display format."""
+        thumbinfo = (
+            "Name: " + self.GetFileName() + "\n"
+            "Size: " + self.GetDisplayFileSize() + "\n"
+            "Modified: " + self.GetDisplayCreationDate() + "\n"
+            "Dimensions: " + self.GetDisplayOriginalSize() + "\n"
+        )
         return thumbinfo
 
-
     def LoadImage(self):
-        """ Load image using imagehandler. """
+        """Load image using imagehandler."""
         filename = self.GetFullFileName()
         img, size, alpha = self._imagehandler.Load(filename)
         self._image = img
         self._originalsize = size
         self._alpha = alpha
 
-
     def Rotate(self, angle):
-        """ Rotate image using imagehandler. """
+        """Rotate image using imagehandler."""
         img = self._imagehandler.Rotate(self._image, angle)
         self._image = img
         self._originalsize = (img.GetWidth, img.GetHeight)
@@ -856,9 +856,8 @@ class Thumb(object):
         # Clear _bitmap so thumbnail is recreated after rotate
         self._bitmap = None
 
-
     def GetHighlightBitmap(self, width, height, factor):
-        """ Returned highlighted bitmap of thumbnail. """
+        """Returned highlighted bitmap of thumbnail."""
 
         img = self.GetThumbnail(width, height)
         img = self._imagehandler.HighlightImage(img, factor)
@@ -867,17 +866,25 @@ class Thumb(object):
 
         return bmp
 
+
 # ---------------------------------------------------------------------------- #
 # Class ScrolledThumbnail
 # This Is The Main Class Implementation
 # ---------------------------------------------------------------------------- #
 
-class ScrolledThumbnail(wx.ScrolledWindow):
-    """ This is the main class implementation of :class:`ThumbnailCtrl`. """
 
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, thumboutline=THUMB_OUTLINE_IMAGE,
-                 imagehandler=None):
+class ScrolledThumbnail(wx.ScrolledWindow):
+    """This is the main class implementation of :class:`ThumbnailCtrl`."""
+
+    def __init__(
+        self,
+        parent,
+        id=wx.ID_ANY,
+        pos=wx.DefaultPosition,
+        size=wx.DefaultSize,
+        thumboutline=THUMB_OUTLINE_IMAGE,
+        imagehandler=None,
+    ):
         """
         Default class constructor.
 
@@ -962,7 +969,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda x: None)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
 
-
     def GetSelectedItem(self, index=-1):
         """
         Returns the selected thumbnail.
@@ -972,12 +978,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         return self.GetItem(self.GetSelection(index))
 
-
     def GetPointed(self):
-        """ Returns the pointed thumbnail index. """
+        """Returns the pointed thumbnail index."""
 
         return self._pointed
-
 
     def GetHighlightPointed(self):
         """
@@ -987,7 +991,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         return self._highlight
-
 
     def SetHighlightPointed(self, highlight=True):
         """
@@ -1000,7 +1003,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         self._highlight = highlight
-
 
     def SetThumbOutline(self, outline):
         """
@@ -1020,12 +1022,15 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         """
 
-        if outline not in [THUMB_OUTLINE_NONE, THUMB_OUTLINE_FULL, THUMB_OUTLINE_RECT,
-                           THUMB_OUTLINE_IMAGE]:
+        if outline not in [
+            THUMB_OUTLINE_NONE,
+            THUMB_OUTLINE_FULL,
+            THUMB_OUTLINE_RECT,
+            THUMB_OUTLINE_IMAGE,
+        ]:
             return
 
         self._tOutline = outline
-
 
     def GetThumbOutline(self):
         """
@@ -1035,7 +1040,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         return self._tOutline
-
 
     def SetDropShadow(self, drop):
         """
@@ -1047,7 +1051,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._dropShadow = drop
         self.Refresh()
 
-
     def GetDropShadow(self):
         """
         Returns whether to drop a shadow behind thumbnails or not.
@@ -1055,12 +1058,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         return self._dropShadow
 
-
     def GetPointedItem(self):
-        """ Returns the pointed thumbnail. """
+        """Returns the pointed thumbnail."""
 
         return self.GetItem(self._pointed)
-
 
     def GetItem(self, index):
         """
@@ -1069,32 +1070,30 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         :param `index`: the thumbnail index position.
         """
 
-        return index >= 0 and (index < len(self._items) and [self._items[index]] or [None])[0]
-
+        return (
+            index >= 0
+            and (index < len(self._items) and [self._items[index]] or [None])[0]
+        )
 
     def GetItemCount(self):
-        """ Returns the number of thumbnails. """
+        """Returns the number of thumbnails."""
 
         return len(self._items)
 
-
     def GetThumbWidth(self):
-        """ Returns the thumbnail width. """
+        """Returns the thumbnail width."""
 
         return self._tWidth
 
-
     def GetThumbHeight(self):
-        """ Returns the thumbnail height. """
+        """Returns the thumbnail height."""
 
         return self._tHeight
 
-
     def GetThumbBorder(self):
-        """ Returns the thumbnail border. """
+        """Returns the thumbnail border."""
 
         return self._tBorder
-
 
     def ShowFileNames(self, show=True):
         """
@@ -1106,7 +1105,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._showfilenames = show
         self.Refresh()
 
-
     def SetPopupMenu(self, menu):
         """
         Sets the thumbnails popup menu when at least one thumbnail is selected.
@@ -1116,12 +1114,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self._pmenu = menu
 
-
     def GetPopupMenu(self):
-        """ Returns the thumbnails popup menu when at least one thumbnail is selected. """
+        """Returns the thumbnails popup menu when at least one thumbnail is selected."""
 
         return self._pmenu
-
 
     def SetGlobalPopupMenu(self, gpmenu):
         """
@@ -1132,18 +1128,15 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self._gpmenu = gpmenu
 
-
     def GetGlobalPopupMenu(self):
-        """ Returns the global thumbnailss popup menu (no need of thumbnail selection). """
+        """Returns the global thumbnailss popup menu (no need of thumbnail selection)."""
 
         return self._gpmenu
 
-
     def GetSelectionColour(self):
-        """ Returns the colour used to indicate a selected thumbnail. """
+        """Returns the colour used to indicate a selected thumbnail."""
 
         return self._selectioncolour
-
 
     def SetSelectionColour(self, colour=None):
         """
@@ -1158,7 +1151,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self._selectioncolour = colour
 
-
     def EnableDragging(self, enable=True):
         """
         Enables/disables thumbnails drag and drop.
@@ -1167,7 +1159,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         self._dragging = enable
-
 
     def EnableToolTips(self, enable=True):
         """
@@ -1181,7 +1172,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         if not enable and hasattr(self, "_tipwindow"):
             self._tipwindow.Enable(False)
 
-
     def GetThumbInfo(self, thumb=-1):
         """
         Returns the thumbnail information.
@@ -1192,8 +1182,9 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         thumbinfo = None
 
         if thumb >= 0:
-            thumbinfo = self._items[thumb].GetInfo() + \
-                        "Thumb: " + str(self.GetThumbSize()[0:2])
+            thumbinfo = (
+                self._items[thumb].GetInfo() + "Thumb: " + str(self.GetThumbSize()[0:2])
+            )
         return thumbinfo
 
     def SetThumbSize(self, width, height, border=6):
@@ -1211,22 +1202,22 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._tWidth = width
         self._tHeight = height
         self._tBorder = border
-        self.SetScrollRate((self._tWidth + self._tBorder)//4,
-                           (self._tHeight + self._tBorder)//4)
-        self.SetSizeHints(self._tWidth + self._tBorder*2 + 16,
-                          self._tHeight + self._tBorder*2 + 8)
+        self.SetScrollRate(
+            (self._tWidth + self._tBorder) // 4, (self._tHeight + self._tBorder) // 4
+        )
+        self.SetSizeHints(
+            self._tWidth + self._tBorder * 2 + 16, self._tHeight + self._tBorder * 2 + 8
+        )
         if self._items:
             self.UpdateShow()
 
-
     def GetThumbSize(self):
-        """ Returns the thumbnail size as width, height and border. """
+        """Returns the thumbnail size as width, height and border."""
 
         return self._tWidth, self._tHeight, self._tBorder
 
-
     def Clear(self):
-        """ Clears :class:`ThumbnailCtrl`. """
+        """Clears :class:`ThumbnailCtrl`."""
 
         self._items = []
         self._selected = -1
@@ -1234,7 +1225,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self._cache = {}
         self.UpdateProp()
         self.Refresh()
-
 
     def ThreadImage(self, filenames):
         """
@@ -1255,14 +1245,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             self.LoadImages(filenames[count], count)
             if count < 4:
                 self.Refresh()
-            elif count%4 == 0:
+            elif count % 4 == 0:
                 self.Refresh()
 
             count = count + 1
 
         self._isrunning = False
         thread.exit()
-
 
     def LoadImages(self, newfile, imagecount):
         """
@@ -1281,7 +1270,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             del self._cache[imagecount]
             self.Refresh()
 
-
     def ShowThumbs(self, thumbs):
         """
         Shows all the thumbnails.
@@ -1290,6 +1278,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         from sd_model_manager.utils.timer import Timer
+
         self._isrunning = False
         self._cache = {}
         self._id_to_idx = {}
@@ -1315,8 +1304,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.UpdateProp()
         self.Refresh()
 
-
-
     def SetSelection(self, value=-1):
         """
         Sets thumbnail selection.
@@ -1338,7 +1325,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             self.ScrollToSelected()
             self.Refresh()
 
-
     def SetZoomFactor(self, zoom=1.4):
         """
         Sets the zoom factor.
@@ -1352,15 +1338,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self._zoomfactor = zoom
 
-
     def GetZoomFactor(self):
-        """ Returns the zoom factor. """
+        """Returns the zoom factor."""
 
         return self._zoomfactor
 
-
     def UpdateItems(self):
-        """ Updates thumbnail items. """
+        """Updates thumbnail items."""
 
         selected = self._selectedarray
         selectedfname = []
@@ -1379,8 +1363,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             self._selectedarray = []
             for ii in range(len(self._items)):
                 for jj in range(len(selected)):
-                    if self._items[ii].GetFileName() == selectedfname[jj] and \
-                            self._items[ii].GetId() == selecteditemid[jj]:
+                    if (
+                        self._items[ii].GetFileName() == selectedfname[jj]
+                        and self._items[ii].GetId() == selecteditemid[jj]
+                    ):
 
                         self._selectedarray.append(ii)
                         if ii in self._cache:
@@ -1393,7 +1379,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_SEL_CHANGED, self.GetId())
                 self.GetEventHandler().ProcessEvent(eventOut)
 
-
     def SetCaptionFont(self, font=None):
         """
         Sets the font for all the thumbnail captions.
@@ -1403,22 +1388,21 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         if font is None:
-            font = wx.Font(8, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False)
+            font = wx.Font(
+                8, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False
+            )
 
         self._captionfont = font
 
-
     def GetCaptionFont(self):
-        """ Returns the font for all the thumbnail captions. """
+        """Returns the font for all the thumbnail captions."""
 
         return self._captionfont
 
-
     def UpdateShow(self):
-        """ Updates thumbnail items. """
+        """Updates thumbnail items."""
 
         self.ShowThumbs(self._items)
-
 
     def GetCaptionHeight(self, begRow, count=1):
         """
@@ -1433,8 +1417,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             if ii < len(self._tCaptionHeight):
                 capHeight = capHeight + self._tCaptionHeight[ii]
 
-        return capHeight*self._tTextHeight
-
+        return capHeight * self._tTextHeight
 
     def GetItemIndex(self, x, y):
         """
@@ -1444,7 +1427,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         :param `y`: the mouse `y` position.
         """
 
-        col = (x - self._tBorder)//(self._tWidth + self._tBorder)
+        col = (x - self._tBorder) // (self._tWidth + self._tBorder)
 
         if col >= self._cols:
             col = self._cols - 1
@@ -1460,13 +1443,12 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         if row < 0:
             row = 0
 
-        index = row*self._cols + col
+        index = row * self._cols + col
 
         if index >= len(self._items):
             index = -1
 
         return index
-
 
     def UpdateProp(self, checkSize=True):
         """
@@ -1477,13 +1459,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         """
 
         width = self.GetClientSize().GetWidth()
-        self._cols = (width - self._tBorder)//(self._tWidth + self._tBorder)
+        self._cols = (width - self._tBorder) // (self._tWidth + self._tBorder)
 
         if self._cols <= 0:
             self._cols = 1
 
-        tmpvar = (len(self._items)%self._cols and [1] or [0])[0]
-        self._rows = len(self._items)//self._cols + tmpvar
+        tmpvar = (len(self._items) % self._cols and [1] or [0])[0]
+        self._rows = len(self._items) // self._cols + tmpvar
 
         self._tCaptionHeight = []
 
@@ -1493,26 +1475,41 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
             for col in range(self._cols):
 
-                ii = row*self._cols + col
+                ii = row * self._cols + col
 
-                if len(self._items) > ii and \
-                        self._items[ii].GetCaptionLinesCount(self._tWidth - self._tCaptionBorder) > capHeight:
+                if (
+                    len(self._items) > ii
+                    and self._items[ii].GetCaptionLinesCount(
+                        self._tWidth - self._tCaptionBorder
+                    )
+                    > capHeight
+                ):
 
-                    capHeight = self._items[ii].GetCaptionLinesCount(self._tWidth - self._tCaptionBorder)
+                    capHeight = self._items[ii].GetCaptionLinesCount(
+                        self._tWidth - self._tCaptionBorder
+                    )
 
             self._tCaptionHeight.append(capHeight)
 
-        self.SetVirtualSize((self._cols*(self._tWidth + self._tBorder) + self._tBorder,
-                             self._rows*(self._tHeight + self._tBorder) + \
-                             self.GetCaptionHeight(0, self._rows) + self._tBorder))
+        self.SetVirtualSize(
+            (
+                self._cols * (self._tWidth + self._tBorder) + self._tBorder,
+                self._rows * (self._tHeight + self._tBorder)
+                + self.GetCaptionHeight(0, self._rows)
+                + self._tBorder,
+            )
+        )
 
-        self.SetSizeHints(self._tWidth + 2*self._tBorder + 16,
-                          self._tHeight + 2*self._tBorder + 8 + \
-                          (self._rows and [self.GetCaptionHeight(0)] or [0])[0])
+        self.SetSizeHints(
+            self._tWidth + 2 * self._tBorder + 16,
+            self._tHeight
+            + 2 * self._tBorder
+            + 8
+            + (self._rows and [self.GetCaptionHeight(0)] or [0])[0],
+        )
 
         if checkSize and width != self.GetClientSize().GetWidth():
             self.UpdateProp(False)
-
 
     def GetItem(self, pos):
         """
@@ -1538,7 +1535,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self.UpdateProp()
 
-
     def RemoveItemAt(self, pos):
         """
         Removes a thumbnail at the specified position.
@@ -1550,19 +1546,17 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self.UpdateProp()
 
-
     def GetPaintRect(self):
-        """ Returns the paint bounding rect for the :meth:`~ScrolledThumbnail.OnPaint` method. """
+        """Returns the paint bounding rect for the :meth:`~ScrolledThumbnail.OnPaint` method."""
 
         size = self.GetClientSize()
         paintRect = wx.Rect(0, 0, size.GetWidth(), size.GetHeight())
         paintRect.x, paintRect.y = self.GetViewStart()
         xu, yu = self.GetScrollPixelsPerUnit()
-        paintRect.x = paintRect.x*xu
-        paintRect.y = paintRect.y*yu
+        paintRect.x = paintRect.x * xu
+        paintRect.y = paintRect.y * yu
 
         return paintRect
-
 
     def IsSelected(self, indx):
         """
@@ -1573,7 +1567,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         return self._selectedarray.count(indx) != 0
 
-
     def GetSelection(self, selIndex=-1):
         """
         Returns the selected thumbnail.
@@ -1581,38 +1574,37 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         :param `selIndex`: if not equal to -1, the index of the selected thumbnail.
         """
 
-        return (selIndex == -1 and [self._selected] or
-                [self._selectedarray[selIndex]])[0]
-
+        return (selIndex == -1 and [self._selected] or [self._selectedarray[selIndex]])[
+            0
+        ]
 
     def ScrollToSelected(self):
-        """ Scrolls the :class:`ScrolledWindow` to the selected thumbnail. """
+        """Scrolls the :class:`ScrolledWindow` to the selected thumbnail."""
 
         if self.GetSelection() == -1:
             return
 
         # get row
-        row = self.GetSelection()//self._cols
+        row = self.GetSelection() // self._cols
         # calc position to scroll view
 
         paintRect = self.GetPaintRect()
-        y1 = row*(self._tHeight + self._tBorder) + self.GetCaptionHeight(0, row)
+        y1 = row * (self._tHeight + self._tBorder) + self.GetCaptionHeight(0, row)
         y2 = y1 + self._tBorder + self._tHeight + self.GetCaptionHeight(row)
 
         if y1 < paintRect.GetTop():
-            sy = y1 # scroll top
+            sy = y1  # scroll top
         elif y2 > paintRect.GetBottom():
-            sy = y2 - paintRect.height # scroll bottom
+            sy = y2 - paintRect.height  # scroll bottom
         else:
             return
 
         # scroll view
         xu, yu = self.GetScrollPixelsPerUnit()
-        sy = sy/yu + (sy%yu and [1] or [0])[0] # convert sy to scroll units
+        sy = sy / yu + (sy % yu and [1] or [0])[0]  # convert sy to scroll units
         x, y = self.GetViewStart()
 
         self.Scroll(int(x), int(sy))
-
 
     def CalculateBestCaption(self, dc, caption, sw, width):
         """
@@ -1632,13 +1624,14 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         return caption[:-3] + "..."
 
-
     def DrawRating(self, dc, img, imgRect, rating):
         w = (1 * 2) + ICON_SIZE
 
         clip = wx.DCClipper(dc, imgRect)
         dc.SetBrush(wx.Brush(wx.Colour(0, 0, 0, 128), wx.BRUSHSTYLE_SOLID))
-        dc.DrawRectangle(imgRect.left, imgRect.bottom - ICON_SIZE - 3, imgRect.width, ICON_SIZE + 4)
+        dc.DrawRectangle(
+            imgRect.left, imgRect.bottom - ICON_SIZE - 3, imgRect.width, ICON_SIZE + 4
+        )
 
         for x in range(5):
             ix = 3 + (w * x) + imgRect.x
@@ -1650,7 +1643,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 dc.DrawBitmap(self.bitmap_star_on_half, ix, iy, True)
             else:
                 dc.DrawBitmap(bitmap, ix, iy, True)
-
 
     def DrawThumbnail(self, bmp, thumb, index):
         """
@@ -1665,8 +1657,8 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         dc.SelectObject(bmp)
         dc = wx.GCDC(dc)
 
-        x = self._tBorder/2
-        y = self._tBorder/2
+        x = self._tBorder / 2
+        y = self._tBorder / 2
 
         # background
         dc.SetPen(wx.Pen(wx.BLACK, 0, wx.TRANSPARENT))
@@ -1682,12 +1674,23 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         ww = img.GetWidth()
         hh = img.GetHeight()
-        imgRect = wx.Rect(int(x + (self._tWidth - img.GetWidth())/2),
-                          int(y + (self._tHeight - img.GetHeight())/2),
-                          img.GetWidth(), img.GetHeight())
+        imgRect = wx.Rect(
+            int(x + (self._tWidth - img.GetWidth()) / 2),
+            int(y + (self._tHeight - img.GetHeight()) / 2),
+            img.GetWidth(),
+            img.GetHeight(),
+        )
 
         if not thumb._alpha and self._dropShadow:
-            dc.Blit(imgRect.x+5, imgRect.y+5, imgRect.width, imgRect.height, self.shadow, 500-ww, 500-hh)
+            dc.Blit(
+                imgRect.x + 5,
+                imgRect.y + 5,
+                imgRect.width,
+                imgRect.height,
+                self.shadow,
+                500 - ww,
+                500 - hh,
+            )
         dc.DrawBitmap(img, imgRect.x, imgRect.y, True)
 
         rating = None
@@ -1715,22 +1718,26 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 sw = self._tWidth
 
             textWidth = sw + 8
-            tx = x + (self._tWidth - textWidth)/2
+            tx = x + (self._tWidth - textWidth) / 2
             ty = y + self._tHeight
 
             txtcolour = "#000000"
             dc.SetTextForeground(txtcolour)
 
-            tx = x + (self._tWidth - sw)/2
+            tx = x + (self._tWidth - sw) / 2
             if hh >= self._tHeight:
-                ty = y + self._tHeight + (self._tTextHeight - sh)/2 + 3
+                ty = y + self._tHeight + (self._tTextHeight - sh) / 2 + 3
             else:
-                ty = y + hh + (self._tHeight-hh)/2 + (self._tTextHeight - sh)/2 + 3
+                ty = (
+                    y + hh + (self._tHeight - hh) / 2 + (self._tTextHeight - sh) / 2 + 3
+                )
 
             dc.DrawText(mycaption, int(tx), int(ty))
 
         # outline
-        if self._tOutline != THUMB_OUTLINE_NONE and (self._tOutlineNotSelected or self.IsSelected(index)):
+        if self._tOutline != THUMB_OUTLINE_NONE and (
+            self._tOutlineNotSelected or self.IsSelected(index)
+        ):
 
             dotrect = wx.Rect()
             dotrect.x = int(x) - 2
@@ -1738,11 +1745,19 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             dotrect.width = bmp.GetWidth() - self._tBorder + 4
             dotrect.height = bmp.GetHeight() - self._tBorder + 4
 
-            dc.SetPen(wx.Pen((self.IsSelected(index) and [colour] or [wx.LIGHT_GREY])[0],
-                             0, wx.PENSTYLE_SOLID))
+            dc.SetPen(
+                wx.Pen(
+                    (self.IsSelected(index) and [colour] or [wx.LIGHT_GREY])[0],
+                    0,
+                    wx.PENSTYLE_SOLID,
+                )
+            )
             dc.SetBrush(wx.Brush(wx.BLACK, wx.BRUSHSTYLE_TRANSPARENT))
 
-            if self._tOutline == THUMB_OUTLINE_FULL or self._tOutline == THUMB_OUTLINE_RECT:
+            if (
+                self._tOutline == THUMB_OUTLINE_FULL
+                or self._tOutline == THUMB_OUTLINE_RECT
+            ):
 
                 imgRect.x = int(x)
                 imgRect.y = int(y)
@@ -1760,27 +1775,34 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 dc.DrawRoundedRectangle(dotrect, 2)
 
                 dc.SetPen(wx.Pen(wx.WHITE))
-                dc.DrawRectangle(imgRect.x, imgRect.y,
-                                 imgRect.width, imgRect.height)
+                dc.DrawRectangle(imgRect.x, imgRect.y, imgRect.width, imgRect.height)
 
                 pen = wx.Pen((selected and [colour] or [wx.LIGHT_GREY])[0], 2)
                 pen.SetJoin(wx.JOIN_MITER)
                 dc.SetPen(pen)
                 if self._tOutline == THUMB_OUTLINE_FULL:
-                    dc.DrawRoundedRectangle(imgRect.x - 1, imgRect.y - 1,
-                                            imgRect.width + 3, imgRect.height + 3, 2)
+                    dc.DrawRoundedRectangle(
+                        imgRect.x - 1,
+                        imgRect.y - 1,
+                        imgRect.width + 3,
+                        imgRect.height + 3,
+                        2,
+                    )
                 else:
-                    dc.DrawRectangle(imgRect.x - 1, imgRect.y - 1,
-                                     imgRect.width + 3, imgRect.height + 3)
+                    dc.DrawRectangle(
+                        imgRect.x - 1,
+                        imgRect.y - 1,
+                        imgRect.width + 3,
+                        imgRect.height + 3,
+                    )
             else:
                 dc.SetPen(wx.Pen(wx.LIGHT_GREY))
 
-                dc.DrawRectangle(imgRect.x - 1, imgRect.y - 1,
-                                 imgRect.width + 2, imgRect.height + 2)
-
+                dc.DrawRectangle(
+                    imgRect.x - 1, imgRect.y - 1, imgRect.width + 2, imgRect.height + 2
+                )
 
         # dc.SelectObject(wx.NullBitmap)
-
 
     def OnPaint(self, event):
         """
@@ -1808,15 +1830,20 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         for ii in range(len(self._items)):
 
-            col = ii%self._cols
+            col = ii % self._cols
             if col == 0:
                 row = row + 1
 
-            xwhite = ((w - self._cols*(self._tWidth + self._tBorder)))//(self._cols+1)
-            tx = xwhite + col*(self._tWidth + self._tBorder)
+            xwhite = ((w - self._cols * (self._tWidth + self._tBorder))) // (
+                self._cols + 1
+            )
+            tx = xwhite + col * (self._tWidth + self._tBorder)
 
-            ty = self._tBorder//2 + row*(self._tHeight + self._tBorder) + \
-                 self.GetCaptionHeight(0, row)
+            ty = (
+                self._tBorder // 2
+                + row * (self._tHeight + self._tBorder)
+                + self.GetCaptionHeight(0, row)
+            )
             tw = self._tWidth + self._tBorder
             th = self._tHeight + self.GetCaptionHeight(row) + self._tBorder
             # visible?
@@ -1830,10 +1857,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 self._cache[ii] = thmb
             dc.DrawBitmap(thmb, tx, ty)
 
-        rect = wx.Rect(xwhite, self._tBorder//2,
-                       self._cols*(self._tWidth + self._tBorder),
-                       self._rows*(self._tHeight + self._tBorder) + \
-                       self.GetCaptionHeight(0, self._rows))
+        rect = wx.Rect(
+            xwhite,
+            self._tBorder // 2,
+            self._cols * (self._tWidth + self._tBorder),
+            self._rows * (self._tHeight + self._tBorder)
+            + self.GetCaptionHeight(0, self._rows),
+        )
 
         w = max(self.GetClientSize().GetWidth(), rect.width)
         h = max(self.GetClientSize().GetHeight(), rect.height)
@@ -1842,14 +1872,16 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         dc.DrawRectangle(rect.GetRight(), 0, w - rect.GetRight(), h + 50)
         dc.DrawRectangle(0, rect.GetBottom(), w, h - rect.GetBottom() + 50)
 
-        col = len(self._items)%self._cols
+        col = len(self._items) % self._cols
 
         if col > 0:
-            rect.x = rect.x + col*(self._tWidth + self._tBorder)
-            rect.y = rect.y + (self._rows - 1)*(self._tHeight + self._tBorder) + \
-                     self.GetCaptionHeight(0, self._rows - 1)
+            rect.x = rect.x + col * (self._tWidth + self._tBorder)
+            rect.y = (
+                rect.y
+                + (self._rows - 1) * (self._tHeight + self._tBorder)
+                + self.GetCaptionHeight(0, self._rows - 1)
+            )
             dc.DrawRectangle(rect)
-
 
     def OnResize(self, event):
         """
@@ -1861,7 +1893,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.UpdateProp()
         self.ScrollToSelected()
         self.Refresh()
-
 
     def OnMouseDown(self, event):
         """
@@ -1902,7 +1933,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                         del self._cache[ii]
                 self._selectedarray = []
 
-                for ii in range(begindex, endindex+1):
+                for ii in range(begindex, endindex + 1):
                     self._selectedarray.append(ii)
                     if ii in self._cache:
                         del self._cache[ii]
@@ -1922,7 +1953,10 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                 self._mouseeventhandled = True
             elif len(self._selectedarray) <= 1:
                 try:
-                    update = len(self._selectedarray)== 0 or self._selectedarray[0] != self._selected
+                    update = (
+                        len(self._selectedarray) == 0
+                        or self._selectedarray[0] != self._selected
+                    )
                 except:
                     update = True
                 for ii in self._selectedarray:
@@ -1941,7 +1975,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self.SetFocus()
 
-
     def OnMouseUp(self, event):
         """
         Handles the ``wx.EVT_LEFT_UP`` and ``wx.EVT_RIGHT_UP`` events for :class:`ThumbnailCtrl`.
@@ -1954,7 +1987,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         y = event.GetY()
         x, y = self.CalcUnscrolledPosition(x, y)
         lastselected = self._selected
-        self._selected = self.GetItemIndex(x,y)
+        self._selected = self.GetItemIndex(x, y)
 
         if not self._mouseeventhandled:
             # set new selection
@@ -1987,12 +2020,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             elif self._selected == -1 and self._gpmenu:
                 self.PopupMenu(self._gpmenu)
             else:
-                eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_RCLICK, self.GetId(), point=event.GetPosition())
+                eventOut = ThumbnailEvent(
+                    wxEVT_THUMBNAILS_RCLICK, self.GetId(), point=event.GetPosition()
+                )
                 self.GetEventHandler().ProcessEvent(eventOut)
 
         if event.ShiftDown():
             self._selected = lastselected
-
 
     def OnMouseDClick(self, event):
         """
@@ -2003,7 +2037,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_DCLICK, self.GetId())
         self.GetEventHandler().ProcessEvent(eventOut)
-
 
     def OnMouseMove(self, event):
         """
@@ -2067,7 +2100,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.GetEventHandler().ProcessEvent(eventOut)
         event.Skip()
 
-
     def OnMouseLeave(self, event):
         """
         Handles the ``wx.EVT_LEAVE_WINDOW`` event for :class:`ThumbnailCtrl`.
@@ -2081,7 +2113,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             self.Refresh()
             eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_POINTED, self.GetId())
             self.GetEventHandler().ProcessEvent(eventOut)
-
 
     def OnThumbChanged(self, event):
         """
@@ -2100,7 +2131,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
                     self._items[ii].SetImage(img)
 
         self.Refresh()
-
 
     def OnChar(self, event):
         """
@@ -2134,8 +2164,9 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             if self.IsSelected(ii):
                 selected.append(ii)
 
-        eventOut = ThumbnailEvent(wxEVT_THUMBNAILS_CHAR, self.GetId(),
-                                  thumbs=selected, keycode=event.KeyCode)
+        eventOut = ThumbnailEvent(
+            wxEVT_THUMBNAILS_CHAR, self.GetId(), thumbs=selected, keycode=event.KeyCode
+        )
         self.GetEventHandler().ProcessEvent(eventOut)
 
         event.Skip()
@@ -2162,7 +2193,6 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         if self.GetSelection() != -1:
             self.Refresh()
 
-
     def OnMouseWheel(self, event):
         """
         Handles the ``wx.EVT_MOUSEWHEEL`` event for :class:`ThumbnailCtrl`.
@@ -2180,9 +2210,8 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         else:
             event.Skip()
 
-
     def ZoomOut(self):
-        """ Zooms the thumbnails out. """
+        """Zooms the thumbnails out."""
 
         w, h, b = self.GetThumbSize()
 
@@ -2190,8 +2219,8 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             return
 
         zoom = self.GetZoomFactor()
-        neww = float(w)/zoom
-        newh = float(h)/zoom
+        neww = float(w) / zoom
+        newh = float(h) / zoom
 
         self.SetThumbSize(int(neww), int(newh))
         self.OnResize(None)
@@ -2199,25 +2228,24 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self.Refresh()
 
-
     def ZoomIn(self):
-        """ Zooms the thumbnails in. """
+        """Zooms the thumbnails in."""
 
         size = self.GetClientSize()
         w, h, b = self.GetThumbSize()
         zoom = self.GetZoomFactor()
 
-        if w*zoom + b > size.GetWidth() or h*zoom + b > size.GetHeight():
-            if w*zoom + b > size.GetWidth():
-                neww = size.GetWidth() - 2*self._tBorder
-                newh = (float(h)/w)*neww
+        if w * zoom + b > size.GetWidth() or h * zoom + b > size.GetHeight():
+            if w * zoom + b > size.GetWidth():
+                neww = size.GetWidth() - 2 * self._tBorder
+                newh = (float(h) / w) * neww
             else:
-                newh = size.GetHeight() - 2*self._tBorder
-                neww = (float(w)/h)*newh
+                newh = size.GetHeight() - 2 * self._tBorder
+                neww = (float(w) / h) * newh
 
         else:
-            neww = float(w)*zoom
-            newh = float(h)*zoom
+            neww = float(w) * zoom
+            newh = float(h) * zoom
 
         self.SetThumbSize(int(neww), int(newh))
         self.OnResize(None)
@@ -2230,11 +2258,13 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 # Class ThumbnailEvent
 # ---------------------------------------------------------------------------- #
 
+
 class ThumbnailEvent(wx.PyCommandEvent):
     """
     This class is used to send events when a thumbnail is hovered, selected,
     double-clicked or when its caption has been changed.
     """
+
     def __init__(self, evtType, evtId=-1, thumbs=None, keycode=None, point=None):
         """
         Default class constructor.

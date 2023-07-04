@@ -4,12 +4,15 @@ import atexit
 import time
 import functools
 
-def secondsToStr(t):
-    return "%d:%02d:%02d.%03d" % \
-        functools.reduce(lambda ll,b : divmod(ll[0],b) + ll[1:],
-            [(t*1000,),1000,60,60])
 
-line = "="*40
+def secondsToStr(t):
+    return "%d:%02d:%02d.%03d" % functools.reduce(
+        lambda ll, b: divmod(ll[0], b) + ll[1:], [(t * 1000,), 1000, 60, 60]
+    )
+
+
+line = "=" * 40
+
 
 class Timer:
     def log(self, s, elapsed=None):

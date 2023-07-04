@@ -8,22 +8,24 @@ from gui.popup_menu import PopupMenu, PopupMenuItem
 from gui.utils import trim_string
 
 
-IGNORE_FIELDS = set([
-    "preview_images",
-    "tag_frequency",
-    "dataset_dirs",
-    "reg_dataset_dirs",
-    "bucket_info",
-    "name",
-    "author",
-    "rating",
-    "tags",
-    "keywords",
-    "source",
-    "_index",
-    "id",
-    "type"
-])
+IGNORE_FIELDS = set(
+    [
+        "preview_images",
+        "tag_frequency",
+        "dataset_dirs",
+        "reg_dataset_dirs",
+        "bucket_info",
+        "name",
+        "author",
+        "rating",
+        "tags",
+        "keywords",
+        "source",
+        "_index",
+        "id",
+        "type",
+    ]
+)
 
 METADATA_ORDER = [
     "output_name",
@@ -95,7 +97,14 @@ METADATA_ORDER = [
 
 class MetadataList(ultimatelistctrl.UltimateListCtrl):
     def __init__(self, parent, item, app=None):
-        super().__init__(parent=parent, id=wx.ID_ANY, agwStyle=ultimatelistctrl.ULC_VIRTUAL|ultimatelistctrl.ULC_REPORT|wx.LC_HRULES|wx.LC_VRULES)
+        super().__init__(
+            parent=parent,
+            id=wx.ID_ANY,
+            agwStyle=ultimatelistctrl.ULC_VIRTUAL
+            | ultimatelistctrl.ULC_REPORT
+            | wx.LC_HRULES
+            | wx.LC_VRULES,
+        )
 
         self.item = item
         self.app = app
@@ -106,7 +115,9 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
         self.SetColumnWidth(1, ultimatelistctrl.ULC_AUTOSIZE_FILL)
 
         self.fields = [(k, v) for k, v in self.item.items() if k in METADATA_ORDER]
-        self.fields = list(sorted(self.fields, key=lambda i: METADATA_ORDER.index(i[0])))
+        self.fields = list(
+            sorted(self.fields, key=lambda i: METADATA_ORDER.index(i[0]))
+        )
 
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked)
 
@@ -127,7 +138,7 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
             if v is None:
                 return "(None)"
             elif isinstance(v, str):
-                return f"\"{v}\""
+                return f'"{v}"'
         return str(v)
 
     def OnGetItemTextColour(self, item, col):
@@ -157,9 +168,11 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
 
         target = self.fields[evt.GetIndex()]
 
-        menu = PopupMenu(target=target, event=evt, items=[
-            PopupMenuItem("Copy Value", self.copy_value)
-        ])
+        menu = PopupMenu(
+            target=target,
+            event=evt,
+            items=[PopupMenuItem("Copy Value", self.copy_value)],
+        )
         pos = evt.GetPoint()
         self.PopupMenu(menu, pos)
         menu.Destroy()
@@ -176,7 +189,12 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
 
 class MetadataDialog(wx.Dialog):
     def __init__(self, parent, item, app=None):
-        super().__init__(parent=parent, id=wx.ID_ANY, title="Model Metadata", size=parent.FromDIP(wx.Size(600, 700)))
+        super().__init__(
+            parent=parent,
+            id=wx.ID_ANY,
+            title="Model Metadata",
+            size=parent.FromDIP(wx.Size(600, 700)),
+        )
 
         self.SetEscapeId(12345)
 
@@ -191,7 +209,9 @@ class MetadataDialog(wx.Dialog):
         self.sizerB.Realize()
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.list, proportion=10, border=2, flag=wx.EXPAND|wx.ALIGN_TOP|wx.ALL)
-        self.sizer.Add(self.sizerB, border=2, flag=wx.EXPAND|wx.ALL)
+        self.sizer.Add(
+            self.list, proportion=10, border=2, flag=wx.EXPAND | wx.ALIGN_TOP | wx.ALL
+        )
+        self.sizer.Add(self.sizerB, border=2, flag=wx.EXPAND | wx.ALL)
 
         self.SetSizer(self.sizer)

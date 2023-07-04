@@ -10,16 +10,23 @@ import wx.lib.mixins.listctrl as listmix
 from gui.rating_ctrl import RatingCtrl, EVT_RATING_CHANGED
 from gui.utils import PUBSUB_HUB
 
+
 class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def __init__(self, parent, app=None):
         self.app = app
         self.roots = []
 
-        wx.lib.scrolledpanel.ScrolledPanel.__init__(self, parent, id=wx.ID_ANY, style=wx.VSCROLL)
+        wx.lib.scrolledpanel.ScrolledPanel.__init__(
+            self, parent, id=wx.ID_ANY, style=wx.VSCROLL
+        )
 
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "item_selected"), self.SubItemSelected)
-        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
+        self.sub.add_async_listener(
+            Key("events", "item_selected"), self.SubItemSelected
+        )
+        self.sub.add_async_listener(
+            Key("events", "tree_filter_changed"), self.SubTreeFilterChanged
+        )
 
         self.ctrls = {}
 
@@ -34,10 +41,25 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             ("author", "Author", None, None),
             ("source", "Source", None, None),
             ("tags", "Tags", None, None),
-            ("keywords", "Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
-            ("negative_keywords", "Negative Keywords", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 40))),
-            ("description", "Description", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 300))),
-            ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 300)))
+            (
+                "keywords",
+                "Keywords",
+                wx.TE_MULTILINE,
+                self.Parent.FromDIP(wx.Size(250, 40)),
+            ),
+            (
+                "negative_keywords",
+                "Negative Keywords",
+                wx.TE_MULTILINE,
+                self.Parent.FromDIP(wx.Size(250, 40)),
+            ),
+            (
+                "description",
+                "Description",
+                wx.TE_MULTILINE,
+                self.Parent.FromDIP(wx.Size(250, 300)),
+            ),
+            ("notes", "Notes", wx.TE_MULTILINE, self.Parent.FromDIP(wx.Size(250, 300))),
         ]
 
         for key, label, style, size in ctrls:
@@ -53,7 +75,9 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self.modify_value(key, label, value)
 
         for key, (ctrl, label) in self.ctrls.items():
-            ctrl.Bind(wx.EVT_TEXT, lambda evt, key=key, label=label: handler(key, label, evt))
+            ctrl.Bind(
+                wx.EVT_TEXT, lambda evt, key=key, label=label: handler(key, label, evt)
+            )
 
         self.label_filename = wx.StaticText(self, label="Filename")
         self.label_rating = wx.StaticText(self, label="Rating")
@@ -76,39 +100,82 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
         self.other_ctrls["filepath"] = self.text_filepath
         self.other_ctrls["rating"] = self.ctrl_rating
 
-        self.ctrl_rating.Bind(EVT_RATING_CHANGED, lambda evt: self.modify_value("rating", self.label_rating, evt.rating))
+        self.ctrl_rating.Bind(
+            EVT_RATING_CHANGED,
+            lambda evt: self.modify_value("rating", self.label_rating, evt.rating),
+        )
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.label_filename, flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.text_filename, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.text_filename, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
 
-        self.sizer.Add(self.ctrls["display_name"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["display_name"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["display_name"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2
+        )
+        self.sizer.Add(
+            self.ctrls["display_name"][0],
+            flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP,
+            border=5,
+        )
         self.sizer.Add(self.ctrls["author"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["author"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["author"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
         self.sizer.Add(self.ctrls["version"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["version"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["version"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
         self.sizer.Add(self.ctrls["source"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["source"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["source"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
         self.sizer.Add(self.ctrls["tags"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["tags"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["tags"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
         self.sizer.Add(self.ctrls["keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
-        self.sizer.Add(self.ctrls["negative_keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["negative_keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["keywords"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
+        self.sizer.Add(
+            self.ctrls["negative_keywords"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2
+        )
+        self.sizer.Add(
+            self.ctrls["negative_keywords"][0],
+            flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP,
+            border=5,
+        )
         self.sizer.Add(self.label_rating, flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrl_rating, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
-        self.sizer.Add(self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["description"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrl_rating, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
+        self.sizer.Add(
+            self.ctrls["description"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2
+        )
+        self.sizer.Add(
+            self.ctrls["description"][0],
+            flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP,
+            border=5,
+        )
         self.sizer.Add(self.ctrls["notes"][1], flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.ctrls["notes"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            self.ctrls["notes"][0], flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
 
         # self.sizer.Add(wx.StaticText(self, label="Preview Image"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         # self.sizer.Add(self.text_preview_image, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
-        self.sizer.Add(wx.StaticText(self, label="ID"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
+        self.sizer.Add(
+            wx.StaticText(self, label="ID"), flag=wx.ALL | wx.ALIGN_TOP, border=2
+        )
         self.sizer.Add(self.text_id, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
-        self.sizer.Add(wx.StaticText(self, label="Filepath"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
-        self.sizer.Add(self.text_filepath, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
+        self.sizer.Add(
+            wx.StaticText(self, label="Filepath"), flag=wx.ALL | wx.ALIGN_TOP, border=2
+        )
+        self.sizer.Add(
+            self.text_filepath, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5
+        )
         # self.sizer.Add(wx.StaticText(self, label="Tags"), flag=wx.ALL | wx.ALIGN_TOP, border=2)
         # self.sizer.Add(self.list_tags, flag=wx.ALL | wx.EXPAND | wx.ALIGN_TOP, border=5)
 
@@ -173,14 +240,21 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         count = 0
         updated = 0
-        progress = wx.ProgressDialog("Saving", f"Saving changes... ({0}/{len(self.selected_items)})", parent=self.app.frame,
-                                     maximum=len(self.selected_items), style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+        progress = wx.ProgressDialog(
+            "Saving",
+            f"Saving changes... ({0}/{len(self.selected_items)})",
+            parent=self.app.frame,
+            maximum=len(self.selected_items),
+            style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE,
+        )
 
         for item in self.selected_items:
             result = await self.app.api.update_lora(item["id"], changes)
             count += 1
-            updated += result['fields_updated']
-            progress.Update(count, f"Saving changes... ({count}/{len(self.selected_items)})")
+            updated += result["fields_updated"]
+            progress.Update(
+                count, f"Saving changes... ({count}/{len(self.selected_items)})"
+            )
 
             self.app.frame.results_panel.refresh_one_item(item)
 
@@ -200,7 +274,12 @@ class PropertiesPanel(wx.lib.scrolledpanel.ScrolledPanel):
             return
 
         if self.changes:
-            dlg = wx.MessageDialog(None, "You have unsaved changes, would you like to commit them?",'Updater',wx.YES_NO | wx.ICON_QUESTION)
+            dlg = wx.MessageDialog(
+                None,
+                "You have unsaved changes, would you like to commit them?",
+                "Updater",
+                wx.YES_NO | wx.ICON_QUESTION,
+            )
             result = dlg.ShowModal()
             if result == wx.ID_YES:
                 await self.commit_changes()
@@ -293,7 +372,12 @@ class MetadataTagsList(wx.ListCtrl, listmix.ListCtrlAutoWidthMixin):
     def __init__(self, parent):
         self.tags = []
 
-        wx.ListCtrl.__init__(self, parent, id=wx.ID_ANY, style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES)
+        wx.ListCtrl.__init__(
+            self,
+            parent,
+            id=wx.ID_ANY,
+            style=wx.LC_REPORT | wx.LC_VIRTUAL | wx.LC_HRULES | wx.LC_VRULES,
+        )
         self.EnableAlternateRowColours(True)
         self.InsertColumn(0, "Tag")
         self.setResizeColumn(0)

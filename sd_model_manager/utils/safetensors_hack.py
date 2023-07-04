@@ -10,7 +10,12 @@ import safetensors.torch
 from sd_model_manager.models import sd_models
 
 # PyTorch 1.13 and later have _TypedStorage renamed to TypedStorage
-UntypedStorage = torch.storage.UntypedStorage if hasattr(torch.storage, 'UntypedStorage') else torch.storage._UntypedStorage
+UntypedStorage = (
+    torch.storage.UntypedStorage
+    if hasattr(torch.storage, "UntypedStorage")
+    else torch.storage._UntypedStorage
+)
+
 
 def read_metadata(filename):
     """Reads the JSON metadata from a .safetensors file"""
@@ -25,7 +30,7 @@ def read_metadata(filename):
 
 
 def load_file(filename, device):
-    """"Loads a .safetensors file without memory mapping that locks the model file.
+    """ "Loads a .safetensors file without memory mapping that locks the model file.
     Works around safetensors issue: https://github.com/huggingface/safetensors/issues/164"""
     with open(filename, mode="r", encoding="utf8") as file_obj:
         with mmap.mmap(file_obj.fileno(), length=0, access=mmap.ACCESS_READ) as m:
@@ -38,7 +43,11 @@ def load_file(filename, device):
     storage = UntypedStorage.from_file(filename, False, size)
     offset = n + 8
     md = metadata.get("__metadata__", {})
-    return {name: create_tensor(storage, info, offset) for name, info in metadata.items() if name != "__metadata__"}, md
+    return {
+        name: create_tensor(storage, info, offset)
+        for name, info in metadata.items()
+        if name != "__metadata__"
+    }, md
 
 
 def hash_file(filename):
@@ -75,19 +84,19 @@ def legacy_hash_file(filename):
     # updates the name/description/etc. The new hashing method fixes this
     # problem by only hashing the region of the file containing the tensors.
     if any(not k.startswith("ss_") for k in metadata):
-      # Strip the user metadata, re-serialize the file as if it were freshly
-      # created from sd-scripts, and hash that with model_hash's behavior.
-      tensors, metadata = load_file(filename, "cpu")
-      metadata = {k: v for k, v in metadata.items() if k.startswith("ss_")}
-      model_bytes = safetensors.torch.save(tensors, metadata)
+        # Strip the user metadata, re-serialize the file as if it were freshly
+        # created from sd-scripts, and hash that with model_hash's behavior.
+        tensors, metadata = load_file(filename, "cpu")
+        metadata = {k: v for k, v in metadata.items() if k.startswith("ss_")}
+        model_bytes = safetensors.torch.save(tensors, metadata)
 
-      hash_sha256.update(model_bytes[0x100000:0x110000])
-      return hash_sha256.hexdigest()[0:8]
+        hash_sha256.update(model_bytes[0x100000:0x110000])
+        return hash_sha256.hexdigest()[0:8]
     else:
-      # This should work fine with model_hash since when the legacy hashing
-      # method was being used the user metadata system hadn't been implemented
-      # yet.
-      return sd_models.model_hash(filename)
+        # This should work fine with model_hash since when the legacy hashing
+        # method was being used the user metadata system hadn't been implemented
+        # yet.
+        return sd_models.model_hash(filename)
 
 
 DTYPES = {"F32": torch.float32, "F16": torch.float16, "BF16": torch.bfloat16}
@@ -99,4 +108,10 @@ def create_tensor(storage, info, offset):
     dtype = DTYPES[info["dtype"]]
     shape = info["shape"]
     start, stop = info["data_offsets"]
-    return torch.asarray(storage[start + offset : stop + offset], dtype=torch.uint8).view(dtype=dtype).reshape(shape).clone().detach()
+    return (
+        torch.asarray(storage[start + offset : stop + offset], dtype=torch.uint8)
+        .view(dtype=dtype)
+        .reshape(shape)
+        .clone()
+        .detach()
+    )

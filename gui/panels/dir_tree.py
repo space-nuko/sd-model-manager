@@ -21,11 +21,19 @@ class DirTreePanel(wx.Panel):
         icon_size = (16, 16)
         self.icons = wx.ImageList(icon_size[0], icon_size[1])
 
-        self.icon_folder_closed = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, icon_size))
-        self.icon_folder_open = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, icon_size))
-        self.icon_file = self.icons.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, icon_size))
+        self.icon_folder_closed = self.icons.Add(
+            wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, icon_size)
+        )
+        self.icon_folder_open = self.icons.Add(
+            wx.ArtProvider.GetBitmap(wx.ART_FOLDER_OPEN, wx.ART_OTHER, icon_size)
+        )
+        self.icon_file = self.icons.Add(
+            wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, icon_size)
+        )
 
-        self.dir_tree = wx.TreeCtrl(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS)
+        self.dir_tree = wx.TreeCtrl(
+            self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS
+        )
         self.dir_tree.SetImageList(self.icons)
         self.button_clear = wx.Button(self, label="Clear Filter")
         self.button_clear.Disable()
@@ -35,7 +43,9 @@ class DirTreePanel(wx.Panel):
 
         self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "search_finished"), self.SubSearchFinished)
+        self.sub.add_async_listener(
+            Key("events", "search_finished"), self.SubSearchFinished
+        )
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.dir_tree, proportion=1, flag=wx.EXPAND | wx.ALL, border=5)
@@ -85,7 +95,11 @@ class DirTreePanel(wx.Panel):
             filepath = result["filepath"]
             path = pathlib.Path(filepath)
 
-            root = next(r for r in self.roots if self.dir_tree.GetItemText(r) == result["root_path"])
+            root = next(
+                r
+                for r in self.roots
+                if self.dir_tree.GetItemText(r) == result["root_path"]
+            )
             for i, part in enumerate(path.parts):
                 exist = find(root, part)
                 if exist:
@@ -95,10 +109,16 @@ class DirTreePanel(wx.Panel):
 
                     is_file = i == len(path.parts) - 1
                     if is_file:
-                        self.dir_tree.SetItemImage(root, self.icon_file, wx.TreeItemIcon_Normal)
+                        self.dir_tree.SetItemImage(
+                            root, self.icon_file, wx.TreeItemIcon_Normal
+                        )
                     else:
-                        self.dir_tree.SetItemImage(root, self.icon_folder_closed, wx.TreeItemIcon_Normal)
-                        self.dir_tree.SetItemImage(root, self.icon_folder_open, wx.TreeItemIcon_Expanded)
+                        self.dir_tree.SetItemImage(
+                            root, self.icon_folder_closed, wx.TreeItemIcon_Normal
+                        )
+                        self.dir_tree.SetItemImage(
+                            root, self.icon_folder_open, wx.TreeItemIcon_Expanded
+                        )
 
         for root in self.roots:
             self.dir_tree.Expand(root)

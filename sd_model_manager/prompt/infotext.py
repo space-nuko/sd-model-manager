@@ -9,11 +9,11 @@ def null_handler(signum, frame):
 
 
 ERROR_EXIT_CODE = 1
-addnet_re = re.compile(r'^addnet_.+_\d+')
-addnet_model_re = re.compile(r'(.*)\(([a-f0-9]+)\)$')
+addnet_re = re.compile(r"^addnet_.+_\d+")
+addnet_model_re = re.compile(r"(.*)\(([a-f0-9]+)\)$")
 re_AND = re.compile(r"\bAND\b")
-re_whitespace = re.compile(r'  +')
-re_metatag = re.compile(r'\S+([^\\]):\S+')
+re_whitespace = re.compile(r"  +")
+re_metatag = re.compile(r"\S+([^\\]):\S+")
 
 
 def remove_metatags(tags):
@@ -21,28 +21,30 @@ def remove_metatags(tags):
 
 
 def get_negatives(line):
-    negatives = line.replace("Negative prompt: ","negative:",1).strip()
+    negatives = line.replace("Negative prompt: ", "negative:", 1).strip()
     negatives = re.sub(re_whitespace, " ", negatives)
     return negatives
 
 
 def get_settings(line):
-    setup = line.replace(": ",":")          # Removes the space between the namespace and tag
+    setup = line.replace(": ", ":")  # Removes the space between the namespace and tag
     settings = setup.split(",")
-    settings = [setting.strip().replace(" ","_") for setting in settings]
+    settings = [setting.strip().replace(" ", "_") for setting in settings]
     return settings
 
 
 def get_tokens(line):
-    prompt = line.replace(":",";")          # Replace : to avoid unwanted namespaces
+    prompt = line.replace(":", ";")  # Replace : to avoid unwanted namespaces
     tokens = prompt.split(",")
-    tokens = [token.strip().replace(" ","_") for token in tokens]
+    tokens = [token.strip().replace(" ", "_") for token in tokens]
     tokens = list(filter(lambda t: t, tokens))
     return tokens
 
 
 annoying_infotext_fields = ["Wildcard prompt", "X Values", "Y Values", "Z Values"]
-re_annoying_infotext_fields = re.compile(rf'({"|".join(annoying_infotext_fields)}): "[^"]*?"(?:, |$)')
+re_annoying_infotext_fields = re.compile(
+    rf'({"|".join(annoying_infotext_fields)}): "[^"]*?"(?:, |$)'
+)
 re_extra_net = re.compile(r"<(\w+):([^>]+)>")
 
 
@@ -99,17 +101,23 @@ def strip_template_info(settings) -> str:
         split_by = f"\n{TEMPLATE_LABEL}:"
 
     if split_by:
-        settings = (
-            settings.split(split_by)[0].strip()
-        )
+        settings = settings.split(split_by)[0].strip()
     return settings
 
 
 def parse_comfyui_prompt(prompt):
     graph = json.loads(prompt)
 
-    prompts = {id: n for id, n in graph.items() if n["class_type"] == "CLIPTextEncode" and "text" in n["inputs"]}
-    ksamplers = [(id, n) for id, n in graph.items() if "KSampler" in n["class_type"] and "positive" in n["inputs"]]
+    prompts = {
+        id: n
+        for id, n in graph.items()
+        if n["class_type"] == "CLIPTextEncode" and "text" in n["inputs"]
+    }
+    ksamplers = [
+        (id, n)
+        for id, n in graph.items()
+        if "KSampler" in n["class_type"] and "positive" in n["inputs"]
+    ]
 
     positive = None
     negative = None
@@ -136,7 +144,7 @@ def parse_comfyui_prompt(prompt):
         return set()
 
     tokens = set()
-    settings = [] # TODO
+    settings = []  # TODO
 
     ts = parser.parse_prompt_attention(positive)
     full_line = ""

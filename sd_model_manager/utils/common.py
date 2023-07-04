@@ -14,8 +14,10 @@ PATH = pathlib.Path(__file__).parent.parent.parent
 # settings_file = os.environ.get('SETTINGS_FILE', 'api.dev.yml')
 DEFAULT_CONFIG_PATH = PATH / "config.yml"
 
-p = configargparse.ArgParser(default_config_files=[DEFAULT_CONFIG_PATH],
-                             config_file_parser_class=configargparse.YAMLConfigFileParser)
+p = configargparse.ArgParser(
+    default_config_files=[DEFAULT_CONFIG_PATH],
+    config_file_parser_class=configargparse.YAMLConfigFileParser,
+)
 p.add_argument("-c", "--config-file", is_config_file=True, help="Config file path")
 p.add_argument("-l", "--listen", type=str, default="127.0.0.1")
 p.add_argument("-p", "--port", type=int, default=7779)
@@ -32,6 +34,7 @@ def get_config(argv):
 
 
 IMAGE_EXTS = set([".png", ".jpg", ".jpeg", ".gif", ".webp"])
+
 
 def is_image_path(path):
     ext = os.path.splitext(path)

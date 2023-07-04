@@ -10,7 +10,15 @@ from wx.lib.agw import ultimatelistctrl
 import wxasync
 
 from sd_model_manager.utils.common import try_load_image
-from gui.scrolledthumbnail import ScrolledThumbnail, Thumb, PILImageHandler, file_broken, EVT_THUMBNAILS_SEL_CHANGED, EVT_THUMBNAILS_DCLICK, EVT_THUMBNAILS_RCLICK
+from gui.scrolledthumbnail import (
+    ScrolledThumbnail,
+    Thumb,
+    PILImageHandler,
+    file_broken,
+    EVT_THUMBNAILS_SEL_CHANGED,
+    EVT_THUMBNAILS_DCLICK,
+    EVT_THUMBNAILS_RCLICK,
+)
 from gui.dialogs.metadata import MetadataDialog
 from gui.utils import PUBSUB_HUB, COLUMNS, find_image_path_for_model
 from gui.popup_menu import PopupMenu, PopupMenuItem, create_popup_menu_for_item
@@ -18,8 +26,16 @@ from gui.popup_menu import PopupMenu, PopupMenuItem, create_popup_menu_for_item
 
 class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def __init__(self, parent, app=None):
-        ultimatelistctrl.UltimateListCtrl.__init__(self, parent, -1,
-                                                   agwStyle=ultimatelistctrl.ULC_VIRTUAL|ultimatelistctrl.ULC_REPORT|wx.LC_HRULES|wx.LC_VRULES|ultimatelistctrl.ULC_SHOW_TOOLTIPS)
+        ultimatelistctrl.UltimateListCtrl.__init__(
+            self,
+            parent,
+            -1,
+            agwStyle=ultimatelistctrl.ULC_VIRTUAL
+            | ultimatelistctrl.ULC_REPORT
+            | wx.LC_HRULES
+            | wx.LC_VRULES
+            | ultimatelistctrl.ULC_SHOW_TOOLTIPS,
+        )
 
         self.app = app
 
@@ -36,7 +52,9 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         self.Bind(wx.EVT_LIST_CACHE_HINT, self.OnListItemSelected)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnListItemActivated)
         self.Bind(wx.EVT_LIST_DELETE_ALL_ITEMS, self.OnListItemSelected)
-        wxasync.AsyncBind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked, self)
+        wxasync.AsyncBind(
+            wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnListItemRightClicked, self
+        )
         self.Bind(wx.EVT_LIST_COL_RIGHT_CLICK, self.OnColumnRightClicked)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
@@ -45,7 +63,9 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
 
         self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
+        self.sub.add_async_listener(
+            Key("events", "tree_filter_changed"), self.SubTreeFilterChanged
+        )
 
         for col, column in enumerate(COLUMNS):
             self.InsertColumn(col, column.name)
@@ -247,16 +267,19 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
     def OnColumnRightClicked(self, evt):
         items = []
         for i, col in enumerate(COLUMNS):
+
             def check(target, event, col=col):
                 col.is_visible = not col.is_visible
                 self.SetColumnShown(i, col.is_visible)
                 self.refresh_columns()
+
             items.append(PopupMenuItem(col.name, check, checked=col.is_visible))
         menu = PopupMenu(target=self, items=items)
         pos = evt.GetPoint()
         self.PopupMenu(menu, pos)
         menu.Destroy()
         pass
+
 
 class GalleryThumbnailHandler(PILImageHandler):
     def Load(self, filename):
@@ -281,6 +304,7 @@ class GalleryThumbnailHandler(PILImageHandler):
 
         return img, originalsize, alpha
 
+
 class ResultsGallery(wx.Panel):
     def __init__(self, parent, app=None, **kwargs):
         self.app = app
@@ -289,7 +313,9 @@ class ResultsGallery(wx.Panel):
 
         wx.Panel.__init__(self, parent, id=wx.ID_ANY, **kwargs)
 
-        self.gallery_font = wx.Font(16, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False)
+        self.gallery_font = wx.Font(
+            16, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False
+        )
 
         self.gallery = ScrolledThumbnail(self, -1)
         self.gallery.SetThumbSize(256, 240)
@@ -370,18 +396,21 @@ class ResultsGallery(wx.Panel):
             image_path = find_image_path_for_model(item)
 
             if image_path is not None:
-                thumb = Thumb(os.path.dirname(image_path),
-                              os.path.basename(image_path),
-                              caption=os.path.splitext(os.path.basename(item["filepath"]))[0],
-                              imagehandler=GalleryThumbnailHandler,
-                              lastmod=os.path.getmtime(image_path),
-                              data=item)
+                thumb = Thumb(
+                    os.path.dirname(image_path),
+                    os.path.basename(image_path),
+                    caption=os.path.splitext(os.path.basename(item["filepath"]))[0],
+                    imagehandler=GalleryThumbnailHandler,
+                    lastmod=os.path.getmtime(image_path),
+                    data=item,
+                )
                 thumb.SetId(len(to_show))
                 to_show.append(thumb)
 
         self.gallery.ShowThumbs(to_show)
 
         self.app.frame.statusbar.SetStatusText(f"Done. ({len(to_show)} entries)")
+
 
 class ResultsPanel(wx.Panel):
     def __init__(self, parent, app=None, **kwargs):
@@ -399,6 +428,7 @@ class ResultsPanel(wx.Panel):
 
     def get_selection(self):
         return self.list.get_selection()
+
 
 class ResultsNotebook(wx.Panel):
     def __init__(self, parent, app=None):
@@ -418,7 +448,9 @@ class ResultsNotebook(wx.Panel):
 
         self.pub = aiopubsub.Publisher(PUBSUB_HUB, Key("events"))
         self.sub = aiopubsub.Subscriber(PUBSUB_HUB, Key("events"))
-        self.sub.add_async_listener(Key("events", "tree_filter_changed"), self.SubTreeFilterChanged)
+        self.sub.add_async_listener(
+            Key("events", "tree_filter_changed"), self.SubTreeFilterChanged
+        )
 
         self.search_box = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_PROCESS_ENTER)
         self.button = wx.Button(self, label="Search")
@@ -428,7 +460,9 @@ class ResultsNotebook(wx.Panel):
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
 
         self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer2.Add(self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5)
+        self.sizer2.Add(
+            self.search_box, proportion=5, flag=wx.LEFT | wx.EXPAND | wx.ALL, border=5
+        )
         self.sizer2.Add(self.button, proportion=1, flag=wx.ALL, border=5)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -446,7 +480,7 @@ class ResultsNotebook(wx.Panel):
 
     def OnPageChanged(self, evt):
         sel = evt.GetSelection()
-        if sel == 1: # gallery page
+        if sel == 1:  # gallery page
             self.results_gallery.SetThumbs(self.results_panel.list.filtered)
 
     async def SubTreeFilterChanged(self, key, path):

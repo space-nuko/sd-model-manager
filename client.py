@@ -43,5 +43,5 @@ async def main():
     await app.MainLoop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

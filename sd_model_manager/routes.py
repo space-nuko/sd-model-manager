@@ -12,4 +12,4 @@ def init_routes(app: web.Application) -> None:
     app.add_routes(main_routes)
     app.add_routes(api_routes)
 
-    app.router.add_static('/static/', path=(PROJECT_PATH / 'static'), name='static')
+    app.router.add_static("/static/", path=(PROJECT_PATH / "static"), name="static")
