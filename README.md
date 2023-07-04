@@ -57,9 +57,10 @@ All API routes will be moved under a `models/` namespace, like `http://localhost
 
 ## Search Query Syntax
 
-When using a `query` parameter to search for models, you can use some special syntax to filter your results:
+When searching for models, you can use some special syntax to filter your results.
 
 ### Basic Searches
+
 An unqualified search term like `some text` will search for the text in the model's name or filepath.
 
 You can search by a fuzzy value with qualifiers like `id:123` or `name:"detailed lighting"`.
