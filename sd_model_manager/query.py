@@ -50,8 +50,8 @@ class StringCriteria(AbstractCriteria):
 
 class NumberCriteria(AbstractCriteria):
     def __init__(self, prefix, column, type):
-        self.re = (
-            re.compile(rf"(^| +)(-)?{prefix}:(==|!=|>|<|>=|<=)?(\d+(?:\.\d+)?)", re.I),
+        self.re = re.compile(
+            rf"(^| +)(-)?{prefix}:(==|!=|>|<|>=|<=)?(\d+(?:\.\d+)?)", re.I
         )
         self.prefix = prefix
         self.column = column
