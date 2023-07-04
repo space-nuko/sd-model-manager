@@ -9,3 +9,6 @@ web/extensions/*
 .mypy_cache
 *.db
 *.db.old
+build/
+dist/
+client.spec

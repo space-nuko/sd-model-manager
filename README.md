@@ -71,7 +71,7 @@ All API routes will be moved under a `models/` namespace, like `http://localhost
 
 ## Usage
 
-- After the initial scan finishes, you can select one or more models from the results list and edit their properties. Press <key>CTRL</key>+<key>S</key> to save your changes.
+- After the initial scan finishes, you can select one or more models from the results list and edit their properties. Press <kbd>CTRL</key>+<kbd>S</key> to save your changes.
 - Click `Gallery` at the top of the models list to switch to thumbnail mode.
 - You can copy relevant prompt/tags for a given model, from either the preview image or the trained tag frequency. Right click a model in the list to see different copying operations.
 - To generate previews, select one or more models from the list, right click on one of them and select `Generate Previews...`. (You can also click the button in the toolbar.) Adjust the parameters to your liking and click `Generate`. When you're happy with the result, click `OK` to save the file.
