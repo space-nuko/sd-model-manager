@@ -4,9 +4,23 @@ A desktop application and companion web server for browsing and managing Stable 
 
 Can be used standalone with the included frontend, embedded into ComfyUI for use with their ecosystem, or repurposed as an independent API server.
 
-**NOTE:** Still alpha-quality for the time being.
+**NOTE:** Still alpha-quality for the time being, please back up your data frequently!
 
-![Screenshot](./screenshot.png)
+## Features
+
+Display all your models with thumbnails in a gallery view:
+
+![Screenshot](./static/screenshot1.png)
+
+Search and browse a list of all your scanned models with metadata:
+
+![Screenshot](./static/screenshot2.png)
+
+Generate new previews for your models from within the GUI:
+
+![Screenshot](./static/screenshot3.png)
+
+**NOTE**: To generate previews from the GUI, you should have an instance of ComfyUI running in the backend. To be able to show ComfyUI generation previews in the window, start the ComfyUI server with the argument `--preview-method auto`.
 
 ## Usage
 
