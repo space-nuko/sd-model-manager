@@ -1,3 +1,4 @@
+import os
 import aiopubsub
 from aiopubsub import Key
 
@@ -47,7 +48,17 @@ class MainWindow(wx.Frame):
             wx.NullBitmap,
             wx.ITEM_NORMAL,
             "Save",
-            "Long help for 'Save'.",
+            "Save current changes to database",
+            None,
+        )
+        self.tool_open_folder = self.toolbar.AddTool(
+            ids.ID_OPEN_FOLDER,
+            "Open Folder",
+            utils.load_bitmap("images/icons/32/folder_go.png"),
+            wx.NullBitmap,
+            wx.ITEM_NORMAL,
+            "Open Folder",
+            "Open the folder containing this model",
             None,
         )
         self.tool_generate_previews = self.toolbar.AddTool(
@@ -57,16 +68,18 @@ class MainWindow(wx.Frame):
             wx.NullBitmap,
             wx.ITEM_NORMAL,
             "Generate Previews...",
-            "Create previews for the selected models.",
+            "Create previews for the selected models",
             None,
         )
 
         self.toolbar.Realize()
 
         self.toolbar.EnableTool(wx.ID_SAVE, False)
+        self.toolbar.EnableTool(ids.ID_OPEN_FOLDER, False)
         self.toolbar.EnableTool(ids.ID_GENERATE_PREVIEWS, False)
 
         wxasync.AsyncBind(wx.EVT_TOOL, self.OnSave, self, id=wx.ID_SAVE)
+        wxasync.AsyncBind(wx.EVT_TOOL, self.OnOpenFolder, self, id=ids.ID_OPEN_FOLDER)
         wxasync.AsyncBind(
             wx.EVT_TOOL, self.OnGeneratePreviews, self, id=ids.ID_GENERATE_PREVIEWS
         )
@@ -164,6 +177,14 @@ class MainWindow(wx.Frame):
         await self.properties_panel.commit_changes()
         self.Refresh()
 
+    async def OnOpenFolder(self, evt):
+        selection = self.results_panel.get_selection()
+        if not selection:
+            return
+        item = selection[0]
+        path = os.path.join(item["root_path"], item["filepath"])
+        utils.open_on_file(path)
+
     async def OnGeneratePreviews(self, evt):
         selection = self.results_panel.get_selection()
         if len(selection) == 0:
@@ -180,8 +201,10 @@ class MainWindow(wx.Frame):
         # self.Refresh()
 
     async def SubItemSelected(self, key, items):
+        selected = len(items) > 0
         self.toolbar.EnableTool(wx.ID_SAVE, False)
-        self.toolbar.EnableTool(ids.ID_GENERATE_PREVIEWS, len(items) > 0)
+        self.toolbar.EnableTool(ids.ID_GENERATE_PREVIEWS, selected)
+        self.toolbar.EnableTool(ids.ID_OPEN_FOLDER, selected)
 
     async def search(self, query):
         self.statusbar.SetStatusText("Searching...")
