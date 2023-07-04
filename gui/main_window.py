@@ -182,7 +182,7 @@ class MainWindow(wx.Frame):
         if not selection:
             return
         item = selection[0]
-        path = os.path.join(item["root_path"], item["filepath"])
+        path = item["filepath"]
         utils.open_on_file(path)
 
     async def OnGeneratePreviews(self, evt):

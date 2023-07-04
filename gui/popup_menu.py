@@ -74,7 +74,7 @@ class PopupMenu(wx.Menu):
 
 
 def open_folder(target, event):
-    path = os.path.join(target["root_path"], target["filepath"])
+    path = target["filepath"]
     utils.open_on_file(path)
 
 

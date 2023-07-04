@@ -8,7 +8,6 @@ from sqlalchemy.orm import (
 from sqlalchemy import (
     func,
     Column,
-    UniqueConstraint,
     Integer,
     String,
     Boolean,
@@ -62,8 +61,6 @@ class SDModel(Base):
     pinned = Column(Boolean, nullable=True)
     tags = Column(String, nullable=True)
     notes = Column(String, nullable=True)
-
-    UniqueConstraint("root_path", "filepath", name="uix_1")
 
     preview_images = relationship("PreviewImage", backref="sd_model")
 

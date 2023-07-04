@@ -271,7 +271,7 @@ class PreviewGeneratorDialog(wx.Dialog):
         image_data = self.comfy_api.get_image(
             result["filename"], result["subfolder"], result["type"]
         )
-        filepath = os.path.join(item["root_path"], item["filepath"])
+        filepath = item["filepath"]
         basepath = os.path.splitext(filepath)[0]
 
         path = basepath + ".png"
@@ -444,7 +444,7 @@ class PreviewGeneratorDialog(wx.Dialog):
         )
 
     def get_lora_name(self, item):
-        filepath = os.path.join(item["root_path"], item["filepath"])
+        filepath = item["filepath"]
         folder_name = "loras"
         lora_name = self.comfy_api.get_relative_path(folder_name, filepath)[
             "relative_path"
@@ -625,7 +625,7 @@ def any_have_previews(items):
     count = 0
 
     for item in items:
-        filepath = os.path.join(item["root_path"], item["filepath"])
+        filepath = item["filepath"]
         basepath = os.path.splitext(filepath)[0]
         path = basepath + ".png"
         if os.path.exists(path):

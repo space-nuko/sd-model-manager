@@ -106,7 +106,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
             self.filtered = data
         else:
             for d in data:
-                p = os.path.normpath(os.path.join(d["root_path"], d["filepath"]))
+                p = d["filepath"]
                 if p.startswith(self.filter):
                     self.filtered.append(d)
         self.refresh_text()
@@ -174,7 +174,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
             self.text[col][i] = text
             self.values[col][i] = value
 
-        filepath = os.path.normpath(os.path.join(data["root_path"], data["filepath"]))
+        filepath = data["filepath"]
         data["file_exists"] = os.path.isfile(filepath)
         if data["file_exists"]:
             colour = "white"

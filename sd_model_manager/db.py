@@ -165,10 +165,6 @@ class DB:
         print("Building model database...")
 
         async with self.AsyncSession() as session:
-            query = delete(LoRAModel)
-            await session.execute(query)
-            await session.commit()
-
             for path in paths:
                 path = os.path.normpath(path)
                 files = list(glob.iglob(f"{path}/**/*.safetensors", recursive=True))
@@ -190,12 +186,8 @@ class DB:
                     rating = to_int(metadata.get("ssmd_rating", None))
                     tags = metadata.get("ssmd_tags", None)
 
-                    filepath = os.path.relpath(f, path)
-                    query = select(LoRAModel).filter(
-                        and_(
-                            LoRAModel.root_path == path, LoRAModel.filepath == filepath
-                        )
-                    )
+                    filepath = f
+                    query = select(LoRAModel).filter(LoRAModel.filepath == filepath)
                     # query = query.options(selectin_polymorphic(SDModel, [LoRAModel])).options(
                     #     selectinload(SDModel.preview_images)
                     # )
@@ -203,6 +195,7 @@ class DB:
                     id = None
                     row = (await session.execute(query)).one_or_none()
                     if row is not None:
+                        # print(f"Exists: {filepath} {row}")
                         # id = row[0].id
                         continue
 
@@ -355,4 +348,4 @@ class DB:
                         )
                         session.add(preview_image)
 
-            await session.commit()
+                await session.commit()

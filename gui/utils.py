@@ -53,7 +53,7 @@ def find_image_for_model(item):
                 break
 
     if image is None:
-        filepath = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
+        filepath = item["filepath"]
         image, image_path = find_image(filepath, load=True)
 
     return image, image_path
@@ -68,7 +68,7 @@ def find_image_path_for_model(item):
             if os.path.isfile(path["filepath"]):
                 return path["filepath"]
 
-    filepath = os.path.normpath(os.path.join(item["root_path"], item["filepath"]))
+    filepath = item["filepath"]
     _, image_path = find_image(filepath, load=False)
     return image_path
 
@@ -230,7 +230,7 @@ COLUMNS = [
     ),
     ColumnInfo(
         "Filepath",
-        lambda m: os.path.normpath(os.path.join(m["root_path"], m["filepath"])),
+        lambda m: os.path.relpath(m["root_path"], m["filepath"]),
         width=600,
     ),
 ]
