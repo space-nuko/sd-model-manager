@@ -9,7 +9,7 @@ import simplejson
 from ast import literal_eval as make_tuple
 from PIL import Image
 from datetime import datetime
-from sqlalchemy import select, delete, func
+from sqlalchemy import select, delete, func, and_
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 
@@ -168,19 +168,37 @@ class DB:
             await session.commit()
 
             for path in paths:
+                path = os.path.normpath(path)
                 files = list(glob.iglob(f"{path}/**/*.safetensors", recursive=True))
 
                 for f in tqdm.tqdm(files):
+                    f = os.path.normpath(f)
                     try:
                         metadata = safetensors_hack.read_metadata(f)
                     except:
+                        continue
+
+                    filepath = os.path.relpath(f, path)
+                    query = select(LoRAModel).filter(
+                        and_(
+                            LoRAModel.root_path == path, LoRAModel.filepath == filepath
+                        )
+                    )
+                    # query = query.options(selectin_polymorphic(SDModel, [LoRAModel])).options(
+                    #     selectinload(SDModel.preview_images)
+                    # )
+
+                    row = (await session.execute(query)).one_or_none()
+                    if row is not None:
+                        print("FOUND!")
+                        print(filepath)
                         continue
 
                     # if "ss_lr_scheduler" not in metadata:
                     #     continue
                     lora_model = LoRAModel(
                         root_path=path,
-                        filepath=os.path.relpath(f, path),
+                        filepath=filepath,
                         filename=os.path.basename(f),
                         last_embedded=datetime.min,
                         display_name=metadata.get("ssmd_display_name", None),

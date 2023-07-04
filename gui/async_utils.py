@@ -75,8 +75,11 @@ async def AsyncShowDialogModal(dlg):
                 frame.Disable()
             return await AsyncShowDialog(dlg)
         finally:
-            for frame in frames:
-                frame.Enable(states[frame])
-            parent = dlg.GetParent()
-            if parent:
-                parent.SetFocus()
+            try:
+                for frame in frames:
+                    if bool(frame):
+                        frame.Enable(states[frame])
+            finally:
+                parent = dlg.GetParent()
+                if parent:
+                    parent.SetFocus()

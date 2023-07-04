@@ -118,7 +118,7 @@ def format_rating(rating):
     return "\u2605" * int(rating / 2) + "\u00BD" * int(rating % 2 != 0)
 
 
-re_optimizer = re.compile(r".*([^.]+)(\(.*\))?$")
+re_optimizer = re.compile(r"([^.]+)(\(.*\))?$")
 
 
 def format_optimizer(m):
@@ -126,7 +126,7 @@ def format_optimizer(m):
     if optimizer is None:
         return None
 
-    matches = re_optimizer.match(optimizer)
+    matches = re_optimizer.search(optimizer)
     if matches is None:
         return optimizer
     return matches[1]
@@ -137,7 +137,7 @@ def format_optimizer_args(m):
     if optimizer is None:
         return None
 
-    matches = re_optimizer.match(optimizer)
+    matches = re_optimizer.search(optimizer)
     if matches is None or matches[2] is None:
         return None
     return matches[2].lstrip("(").rstrip(")")
@@ -161,6 +161,13 @@ def format_network_alpha(v):
             return v
 
 
+def format_shorthash(m):
+    hash = m.get("model_hash")
+    if hash is None:
+        return None
+    return hash[0:12]
+
+
 COLUMNS = [
     # ColumnInfo("ID", lambda m: m["id"]),
     ColumnInfo(
@@ -182,7 +189,7 @@ COLUMNS = [
     ColumnInfo("Text Encoder LR", lambda m: m["text_encoder_lr"]),
     ColumnInfo("Optimizer", format_optimizer, width=120),
     ColumnInfo("Optimizer Args", format_optimizer_args, width=240),
-    ColumnInfo("Scheduler", lambda m: m["lr_scheduler"], width=80),
+    ColumnInfo("Scheduler", lambda m: m["lr_scheduler"], width=120),
     ColumnInfo("# Train Images", lambda m: m["num_train_images"]),
     ColumnInfo("# Reg Images", lambda m: m["num_reg_images"]),
     ColumnInfo("# Batches/Epoch", lambda m: m["num_batches_per_epoch"]),
@@ -191,6 +198,7 @@ COLUMNS = [
     ColumnInfo("Total Batch Size", lambda m: m["total_batch_size"]),
     ColumnInfo("Keep Tokens", lambda m: m["keep_tokens"]),
     ColumnInfo("Noise Offset", lambda m: m["noise_offset"]),
+    ColumnInfo("Shorthash", format_shorthash, width=100),
     ColumnInfo(
         "Training Comment", lambda m: m["training_comment"], width=140, is_visible=False
     ),

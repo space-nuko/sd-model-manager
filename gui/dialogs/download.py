@@ -206,6 +206,7 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.start_prompt(data=self.last_data)
 
     def OnUpscale(self, evt):
+        self.last_data.seed = random.randint(0, 2**16)
         utils.start_async_thread(self.upscale_prompt, self.last_data)
 
     def start_prompt(self, data=None):
@@ -358,14 +359,14 @@ masterpiece,
     def get_output_image(self, prompt_id):
         images, files = self.comfy_api.get_images(prompt_id)
         if not images:
-            return None
+            return None, None
         image_datas = []
         image_files = None
         for node_id in images:
             image_datas += images[node_id]
             image_files = files[node_id]
         if not image_datas:
-            return None
+            return None, None
         return wx.Image(io.BytesIO(image_datas[0])), image_files[0]
 
     def do_execute(self, data):
@@ -438,5 +439,4 @@ async def run(app, items):
     dialog = PreviewGeneratorDialog(app.frame, app, items)
     dialog.Center()
     result = await AsyncShowDialogModal(dialog)
-    dialog_result = dialog.result
     dialog.Destroy()

@@ -19,7 +19,7 @@ class ModelManagerAPI:
         return f"http://{host}:{self.config.port}"
 
     async def get_loras(self, query):
-        params = {"limit": 250}
+        params = {"limit": 1000}
         if query:
             params["query"] = query
 
