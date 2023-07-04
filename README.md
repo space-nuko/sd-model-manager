@@ -151,7 +151,7 @@ Some criteria can also be used with the `has:` qualifier to check for existence 
 
 You can sort the results returned from the database with the `order:` qualifier: `order:rating`
 
-To reverse the order: `order:reverse:dim`
+To reverse the order: `order:reverse:rating`
 
 #### List of Ordering Types
 
