@@ -82,6 +82,15 @@ def format_resolution(tuple_str, idx):
         return None
 
 
+def can_load_image(path):
+    try:
+        image = Image.open(path)
+        image.load()
+        return True
+    except Exception:
+        return False
+
+
 def find_preview_images(basepath):
     i = 0
     images = []
@@ -99,6 +108,7 @@ def find_preview_images(basepath):
         images.append(path)
         i += 1
 
+    images = [os.path.normpath(i) for i in images if can_load_image(i)]
     return images
 
 
@@ -339,7 +349,8 @@ class DB:
                     session.add(lora_model)
                     await session.flush()
 
-                    image_paths = find_preview_images(os.path.basepath(f))
+                    # TODO dedup
+                    image_paths = find_preview_images(os.path.splitext(f)[0])
                     for image_path in image_paths:
                         preview_image = PreviewImage(
                             filepath=image_path,
