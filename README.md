@@ -28,10 +28,10 @@ First install the requirements:
 
 ```bash
 # Required
-pip install -r requirements/development.txt
+pip install -r requirements/gui.txt
 
 # Optional, if developing
-pip install -r requirements/gui.txt
+pip install -r requirements/development.txt
 ```
 
 Next edit `config.yml` to contain your model paths:
