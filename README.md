@@ -61,6 +61,20 @@ Your model metadata will be saved to `model_database.db` in case you want to bac
 
 You can use this repo as a ComfyUI extension to embed the server into its existing API. Simply clone/move this repo into the `custom_nodes` folder of your ComfyUI installation, install the requirements into your virtualenv, then start ComfyUI as usual.
 
+```bash
+cd /c/ComfyUI
+
+# be sure to activate your ComfyUI virtualenv before installing requirements 
+source venv/Scripts/activate
+
+git clone https://github.com/space-nuko/sd-model-manager custom_nodes/sd-model-manager
+pushd custom_nodes/sd-model-manager
+pip install -r requirements/gui.txt
+popd
+
+python main.py --preview-method auto
+```
+
 To connect to the model management server when it's running under ComfyUI, use this command:
 
 ```
