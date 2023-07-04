@@ -1,3 +1,4 @@
+import os
 from aiohttp import web
 from sqlalchemy import create_engine, select, or_
 from sqlalchemy.orm import Session, selectinload, selectin_polymorphic
@@ -6,6 +7,7 @@ import simplejson
 
 from sd_model_manager.models.sd_models import (
     PreviewImage,
+    PreviewImageSchema,
     SDModel,
     LoRAModel,
     LoRAModelSchema,
@@ -25,8 +27,52 @@ def paging_to_json(paging, limit):
 routes = web.RouteTableDef()
 
 
+@routes.get("/api/v1/preview_image/{id}")
+async def show_preview_image(request):
+    image_id = request.match_info.get("id", None)
+    if image_id is None:
+        return web.Response(status=404)
+
+    async with request.app["sdmm_db"].AsyncSession() as s:
+        query = select(PreviewImage).filter(PreviewImage.id == image_id)
+
+        row = (await s.execute(query)).one()
+        if row is None:
+            return web.json_response(
+                {"message": f"Preview image not found: {image_id}"}, status=404
+            )
+        row = row[0]
+
+        schema = PreviewImageSchema()
+
+        resp = {"data": schema.dump(row)}
+
+        return web.json_response(resp, dumps=simplejson.dumps)
+
+
+@routes.get("/api/v1/preview_image/{id}/view")
+async def view_preview_image_file(request):
+    image_id = request.match_info.get("id", None)
+    if image_id is None:
+        return web.Response(status=404)
+
+    async with request.app["sdmm_db"].AsyncSession() as s:
+        query = select(PreviewImage).filter(PreviewImage.id == image_id)
+
+        row = (await s.execute(query)).one()
+        if row is None:
+            return web.Response(status=404)
+        row = row[0]
+
+        if not os.path.isfile(row.filepath):
+            return web.Response(status=404)
+
+        with open(row.filepath, "rb") as b:
+            return web.Response(body=b.read(), content_type="image/jpeg")
+
+
 @routes.get("/api/v1/loras")
-async def index(request):
+async def index_loras(request):
     page_marker = request.rel_url.query.get("page", None)
     limit = int(request.rel_url.query.get("limit", 100))
     search_query = request.rel_url.query.get("query", None)
@@ -52,7 +98,7 @@ async def index(request):
 
 
 @routes.get("/api/v1/lora/{id}")
-async def show(request):
+async def show_loras(request):
     model_id = request.match_info.get("id", None)
     if model_id is None:
         return web.Response(status=404)
@@ -78,7 +124,7 @@ async def show(request):
 
 
 @routes.patch("/api/v1/lora/{id}")
-async def update(request):
+async def update_lora(request):
     model_id = request.match_info.get("id", None)
     if model_id is None:
         return web.json_response({"message": "No LoRA ID provided"}, status=404)
