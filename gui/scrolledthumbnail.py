@@ -911,6 +911,9 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         wx.ScrolledWindow.__init__(self, parent, id, pos, size)
 
+        self._max_width = parent.FromDIP(350 * 2)
+        self._max_height = parent.FromDIP(280 * 2)
+
         self._items = []
         self.SetThumbSize(96, 80)
         self._tOutline = thumboutline
@@ -962,6 +965,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.Bind(wx.EVT_MOTION, self.OnMouseMove)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
         self.Bind(EVT_THUMBNAILS_THUMB_CHANGED, self.OnThumbChanged)
+        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_CHAR, self.OnChar)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
 
@@ -1196,7 +1200,7 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         :param `border`: the spacing between thumbnails.
         """
 
-        if width > 350 or height > 280:
+        if width > self._max_width or height > self._max_height:
             return
 
         self._tWidth = width
@@ -2132,6 +2136,18 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         self.Refresh()
 
+    def OnKeyDown(self, event):
+        if event.KeyCode == wx.WXK_LEFT:
+            self.SelectDelta(-1, 0)
+        elif event.KeyCode == wx.WXK_RIGHT:
+            self.SelectDelta(1, 0)
+        elif event.KeyCode == wx.WXK_UP:
+            self.SelectDelta(0, -1)
+        elif event.KeyCode == wx.WXK_DOWN:
+            self.SelectDelta(0, 1)
+        else:
+            event.Skip()
+
     def OnChar(self, event):
         """
         Handles the ``wx.EVT_CHAR`` event for :class:`ThumbnailCtrl`.
@@ -2154,15 +2170,24 @@ class ScrolledThumbnail(wx.ScrolledWindow):
             self.Rotate(270)
         elif event.KeyCode == ord("a"):
             self.Rotate(180)
-        elif event.KeyCode in [wx.WXK_ADD, wx.WXK_NUMPAD_ADD]:
+        elif event.KeyCode in [wx.WXK_ADD, wx.WXK_NUMPAD_ADD, ord("+"), ord("=")]:
             self.ZoomIn()
-        elif event.KeyCode in [wx.WXK_SUBTRACT, wx.WXK_NUMPAD_SUBTRACT]:
+        elif event.KeyCode in [
+            wx.WXK_SUBTRACT,
+            wx.WXK_NUMPAD_SUBTRACT,
+            ord("-"),
+        ]:
             self.ZoomOut()
 
+        for ii in self._selectedarray:
+            if ii in self._cache:
+                del self._cache[ii]
         selected = []
         for ii in range(len(self._items)):
             if self.IsSelected(ii):
                 selected.append(ii)
+                if ii in self._cache:
+                    del self._cache[ii]
 
         eventOut = ThumbnailEvent(
             wxEVT_THUMBNAILS_CHAR, self.GetId(), thumbs=selected, keycode=event.KeyCode
@@ -2180,10 +2205,15 @@ class ScrolledThumbnail(wx.ScrolledWindow):
 
         wx.BeginBusyCursor()
 
+        for ii in self._selectedarray:
+            if ii in self._cache:
+                del self._cache[ii]
         selected = []
         for ii in range(len(self._items)):
             if self.IsSelected(ii):
                 selected.append(self._items[ii])
+                if ii in self._cache:
+                    del self._cache[ii]
 
         for thumb in selected:
             thumb.Rotate(angle)
@@ -2251,6 +2281,24 @@ class ScrolledThumbnail(wx.ScrolledWindow):
         self.OnResize(None)
         self._checktext = True
 
+        self.Refresh()
+
+    def SelectDelta(self, dx, dy):
+        if len(self._items) == 0:
+            return
+
+        for ii in self._selectedarray:
+            if ii in self._cache:
+                del self._cache[ii]
+
+        ii = None
+        if len(self._selectedarray) > 0:
+            ii = self._selectedarray[0]
+
+        ii = ii + (dy * self._cols) + dx
+        ii = max(0, min(len(self._items) - 1, ii))
+
+        self.SetSelection(ii)
         self.Refresh()
 
 

@@ -87,6 +87,7 @@ python client.py --mode comfyui
 
 - After the initial scan finishes, you can select one or more models from the results list and edit their properties. Press <kbd>CTRL</key>+<kbd>S</key> to save your changes.
 - Click `Gallery` at the top of the models list to switch to thumbnail mode.
+  + In the `Gallery` view you can press `-` to zoom out and `+`/`=` to zoom in.
 - You can copy relevant prompt/tags for a given model, from either the preview image or the trained tag frequency. Right click a model in the list to see different copying operations.
 - To generate previews, select one or more models from the list, right click on one of them and select `Generate Previews...`. (You can also click the button in the toolbar.) Adjust the parameters to your liking and click `Generate`. When you're happy with the result, click `OK` to save the file.
   + If you select more than one model before opening the preview generator, clicking `OK` will start generating previews for the other models you selected. In this case the generation parameters you chose for the *first* model will be applied to the other models. This is so you can have a consistent thumbnail between each model for easier comparison. Because of this, when generating previews it's recommended to select a group of models that are related to each other.
