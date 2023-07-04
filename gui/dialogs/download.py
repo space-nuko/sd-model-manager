@@ -123,6 +123,16 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.comfy_api = ComfyAPI()
         self.duplicate_op = duplicate_op  # "replace", "append"
 
+        self.items = items
+        self.result = None
+        self.last_data = None
+        self.last_output = None
+        self.executing_node_id = None
+        self.upscaled = False
+        self.last_seed = 0
+        self.last_upscale_seed = 0
+        self.node_text = ""
+
         utils.set_icons(self)
 
         tags = self.get_tags(items[0], count=20)
@@ -203,16 +213,6 @@ class PreviewGeneratorDialog(wx.Dialog):
         self.button_cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.button_ok = wx.Button(self, wx.ID_OK, "OK")
         self.button_ok.Disable()
-
-        self.items = items
-        self.result = None
-        self.last_data = None
-        self.last_output = None
-        self.executing_node_id = None
-        self.upscaled = False
-        self.last_seed = 0
-        self.last_upscale_seed = 0
-        self.node_text = ""
 
         self.Bind(wx.EVT_BUTTON, self.OnRegenerate, id=wx.ID_HELP)
         self.Bind(wx.EVT_BUTTON, self.OnUpscale, id=wx.ID_APPLY)

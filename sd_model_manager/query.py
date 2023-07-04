@@ -6,6 +6,7 @@ if __name__ == "__main__":
     sys.path.append(path)
 
 import re
+from datetime import datetime
 from typing import Optional, Pattern
 from sqlalchemy import create_engine, func, select, not_, or_, and_, nulls_last, exists
 
@@ -168,6 +169,12 @@ ALL_CRITERIA = [
     OrderByCriteria("train_images", LoRAModel.num_train_images, default=0),
     OrderByCriteria("num_reg_images", LoRAModel.num_reg_images, default=0),
     OrderByCriteria("reg_images", LoRAModel.num_reg_images, default=0),
+    OrderByCriteria(
+        "training_started_at", LoRAModel.training_started_at, default=datetime.min
+    ),
+    OrderByCriteria(
+        "training_finished_at", LoRAModel.training_finished_at, default=datetime.min
+    ),
     StringCriteria("root_path", SDModel.root_path),
     StringCriteria("filepath", SDModel.filepath),
     StringCriteria("filename", SDModel.filename),
