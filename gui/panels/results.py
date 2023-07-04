@@ -257,7 +257,7 @@ class ResultsListCtrl(ultimatelistctrl.UltimateListCtrl):
         dialog = MetadataDialog(self, target, app=self.app)
         dialog.CenterOnParent(wx.BOTH)
         await wxasync.AsyncShowDialogModal(dialog)
-        dialog.Destroy()
+        # dialog.Destroy()
 
     async def OnListItemRightClicked(self, evt):
         idx = evt.GetIndex()
@@ -380,7 +380,7 @@ class ResultsGallery(wx.Panel):
         dialog = MetadataDialog(self, item, app=self.app)
         dialog.CenterOnParent(wx.BOTH)
         await wxasync.AsyncShowDialogModal(dialog)
-        dialog.Destroy()
+        # dialog.Destroy()
 
     def OnThumbnailRightClicked(self, evt):
         selected = self.get_selection()

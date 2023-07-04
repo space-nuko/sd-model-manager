@@ -110,8 +110,6 @@ class MetadataList(ultimatelistctrl.UltimateListCtrl):
         self.item = item
         self.app = app
 
-        utils.set_icons(self)
-
         self.InsertColumn(0, "Key")
         self.InsertColumn(1, "Value")
         self.SetColumnWidth(0, parent.FromDIP(140))
@@ -204,6 +202,8 @@ class MetadataDialog(wx.Dialog):
 
         self.item = item
         self.app = app
+
+        utils.set_icons(self)
 
         self.list = MetadataList(self, item, app=self.app)
         self.buttonOk = wx.Button(self, wx.ID_OK)

@@ -617,7 +617,7 @@ class PreviewGeneratorDialog(wx.Dialog):
             wx.OK | wx.ICON_ERROR,
         )
         await wxasync.AsyncShowDialogModal(dialog)
-        dialog.Destroy()
+        # dialog.Destroy()
         self.AsyncEndModal(wx.ID_CANCEL)
 
 
@@ -657,4 +657,4 @@ async def run(app, items):
     dialog = PreviewGeneratorDialog(app.frame, app, items, op)
     dialog.Center()
     result = await AsyncShowDialogModal(dialog)
-    dialog.Destroy()
+    # dialog.Destroy()
