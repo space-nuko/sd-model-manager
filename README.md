@@ -85,7 +85,7 @@ python client.py --mode comfyui
 
 ## Usage
 
-- After the initial scan finishes, you can select one or more models from the results list and edit their properties. Press <kbd>CTRL</key>+<kbd>S</key> to save your changes.
+- After the initial scan finishes, you can select one or more models from the results list and edit their properties. Press <kbd>CTRL</kbd>+<kbd>S</kbd> to save your changes.
 - Click `Gallery` at the top of the models list to switch to thumbnail mode.
   + In the `Gallery` view you can press `-` to zoom out and `+`/`=` to zoom in.
 - You can copy relevant prompt/tags for a given model, from either the preview image or the trained tag frequency. Right click a model in the list to see different copying operations.
