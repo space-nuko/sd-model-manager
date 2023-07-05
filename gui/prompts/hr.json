@@ -20,7 +20,7 @@
       "cfg": 8,
       "sampler_name": "dpmpp_2m",
       "scheduler": "simple",
-      "denoise": 0.5,
+      "denoise": 0.55,
       "model": ["21", 0],
       "positive": ["6", 0],
       "negative": ["7", 0],

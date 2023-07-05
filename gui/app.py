@@ -40,4 +40,4 @@ class App(wxasync.WxAsyncApp):
     async def on_init_callback(self):
         self.frame.results_panel.search_box.SetFocus()
         self.SetStatusText("Ready")
-        # await self.frame.search("")
+        await self.frame.search("")

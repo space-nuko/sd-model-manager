@@ -11,6 +11,9 @@ import wx
 
 from main import create_app
 from sd_model_manager.utils.common import get_config
+
+import gui.patch
+
 from gui.app import App
 
 try:
@@ -85,7 +88,11 @@ async def main():
 
     app = App(server, config, redirect=False)
     sys.excepthook = exception_handler
-    await app.MainLoop()
+
+    try:
+        await app.MainLoop()
+    except asyncio.exceptions.CancelledError:
+        pass
 
 
 if __name__ == "__main__":

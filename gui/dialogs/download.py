@@ -191,7 +191,7 @@ class PreviewGeneratorDialog(wx.Dialog):
             min_val=0,
             max_val=1,
             increment=0.01,
-            value=0.5,
+            value=0.55,
             agwStyle=floatspin.FS_LEFT,
         )
         self.spinner_denoise.SetFormat("%f")
@@ -359,9 +359,7 @@ class PreviewGeneratorDialog(wx.Dialog):
             self.autogen = True
             for i, item in enumerate(self.items[1:]):
                 filename = os.path.basename(item["filepath"])
-                self.status_text.SetLabel(
-                    f"Generating preview: {filename} ({i}/{len(self.items)-1})"
-                )
+                self.status_text.SetLabel(f"Generating preview for {filename}")
                 self.models_text.SetLabel(f"Progress: {i}/{len(self.items)-1}")
                 self.spinner_seed.SetValue(self.last_seed)
                 e = Event()

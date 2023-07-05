@@ -221,6 +221,11 @@ COLUMNS = [
     ColumnInfo(
         "Training Comment", lambda m: m["training_comment"], width=140, is_visible=False
     ),
+    ColumnInfo(
+        "Train Date",
+        lambda m: m["training_started_at"],
+        width=170,
+    ),
     ColumnInfo("Tags", lambda m: m["tags"], is_meta=True, width=140),
     ColumnInfo(
         "Keywords", lambda m: m["keywords"], is_meta=True, width=140, is_visible=False

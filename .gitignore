@@ -13,3 +13,8 @@ build/
 dist/
 client.spec
 *.db-journal
+*.swp
+*.swo
+*flycheck_*
+*_flymake.*
+.#*
